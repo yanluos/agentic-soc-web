@@ -6,125 +6,654 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-ai: var(--ai);
+  --color-ai-foreground: var(--ai-foreground);
+  /* workflow node-type accents (low-saturation, used on icon badges / cards) */
+  --color-node-tool: var(--node-tool);
+  --color-node-analyze: var(--node-analyze);
+  --color-node-agent: var(--node-agent);
+  --color-node-condition: var(--node-condition);
+  --color-node-approval: var(--node-approval);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  /* status semantics — success (green), warning/running (amber) */
+  --success: oklch(0.6 0.16 150);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.78 0.16 80);
+  --warning-foreground: oklch(0.27 0.06 70);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  /* neutral accent — scoped to the sidebar (active rail / brand / icons):
+       浅色主题为黑，暗色主题为近白 */
+  --sidebar-primary: oklch(0.145 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.145 0 0);
+  /* AI 语义色 — 与侧栏模块选中态同色（--sidebar-primary 黑，明暗自适应），
+       助手相关表面共用 */
+  --ai: var(--sidebar-primary);
+  --ai-foreground: var(--sidebar-primary-foreground);
+  /* workflow node-type accents — low-saturation, distinct hues per node kind */
+  --node-tool: oklch(0.62 0.07 250);
+  --node-analyze: oklch(0.62 0.08 300);
+  --node-agent: oklch(0.6 0.07 165);
+  --node-condition: oklch(0.68 0.08 70);
+  --node-approval: oklch(0.63 0.08 20);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  /* status semantics — brightened for dark surfaces */
+  --success: oklch(0.7 0.15 150);
+  --success-foreground: oklch(0.205 0 0);
+  --warning: oklch(0.82 0.15 82);
+  --warning-foreground: oklch(0.27 0.06 70);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  /* neutral accent — 暗色下"黑色"取近白，保证在深色侧栏上可读 */
+  --sidebar-primary: oklch(0.985 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.985 0 0);
+  /* AI 语义色随 --sidebar-primary 明暗自适应，无需暗色专档 */
+  /* workflow node-type accents — brightened for dark cards */
+  --node-tool: oklch(0.72 0.08 250);
+  --node-analyze: oklch(0.72 0.09 300);
+  --node-agent: oklch(0.72 0.08 165);
+  --node-condition: oklch(0.78 0.09 70);
+  --node-approval: oklch(0.72 0.09 20);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
+}
+
+/* ==========================================================================
+   按钮立体感 (flat solid + card shadow)
+   设计规范：/Users/yanluo/dev/agentic-soc/design/agentic-soc-icon-buttons.html
+   纯色面：不加渐变/内高光，variant 自身底色即最终面色。投影与模块卡片同一
+   套（lib/styles.js cardHover）：亮色 shadow-sm → hover shadow-lg；暗色
+   低透明黑影 + 顶缘 inset 微光晕（同卡片，画在内容之下）。字面立体感放在
+   文字/图标浮雕（text-shadow / drop-shadow）。box-shadow 列表并入
+   --tw-ring-* 变量，focus 环 / aria-invalid 环叠加显示不被覆盖。
+   按 data-slot/data-variant 命中，ui/ 保持 CLI 原样。link 纯文字不参与；
+   ghost 是 chrome 层——静止透明隐形，悬停以中性面 + 同一套卡片投影「显形」，
+   字面浮雕常驻（见文件下方 ghost 段）。
+   ========================================================================== */
+
+:root {
+  /* 与 cardHover 的 shadow-sm / shadow-lg 同值 */
+  --btn-drop: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --btn-drop-hover:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --btn-drop-press: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+  /* 字面浮雕：深色面浅色字→字下描暗影；浅色面深色字→字下垫白（凹版） */
+  --btn-text-shadow-solid: 0 1px 1px rgb(0 0 0 / 0.25);
+  --btn-text-shadow-surface: 0 1px 0 rgb(255 255 255 / 0.65);
+  --btn-glyph-solid: drop-shadow(0 1px 1px rgb(0 0 0 / 0.25));
+  --btn-glyph-surface: drop-shadow(0 1px 0 rgb(255 255 255 / 0.65));
+}
+.dark {
+  /* 与 cardHover 暗色档同值：黑影 + 顶缘内光晕 */
+  --btn-drop:
+    0 1px 3px 0 rgb(0 0 0 / 0.5), inset 0 2px 6px -3px rgb(255 255 255 / 0.12);
+  --btn-drop-hover:
+    0 10px 28px -6px rgb(0 0 0 / 0.6),
+    inset 0 2px 6px -3px rgb(255 255 255 / 0.16);
+  --btn-drop-press: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  /* 暗色 default 是浅面深字，不描影；浅字 variant 描暗影 */
+  --btn-text-shadow-solid: none;
+  --btn-text-shadow-surface: 0 1px 1px rgb(0 0 0 / 0.4);
+  --btn-glyph-solid: none;
+  --btn-glyph-surface: drop-shadow(0 1px 1px rgb(0 0 0 / 0.4));
+}
+
+/* 选择器用 .soc-btn(Button 组件基类)而不是 [data-slot="button"]：Button 作为
+   asChild 触发器时(DialogTrigger/PopoverTrigger…)外层的 data-slot 会覆盖掉
+   "button",className 才是被合并保留的——否则这些按钮会丢掉整套立体阴影 */
+.soc-btn:is(
+  [data-variant="default"],
+  [data-variant="outline"],
+  [data-variant="secondary"],
+  [data-variant="destructive"]
+) {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop);
+}
+.soc-btn:is(
+    [data-variant="default"],
+    [data-variant="outline"],
+    [data-variant="secondary"],
+    [data-variant="destructive"]
+  ):hover {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-hover);
+}
+.soc-btn:is(
+    [data-variant="default"],
+    [data-variant="outline"],
+    [data-variant="secondary"],
+    [data-variant="destructive"]
+  ):active {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-press);
+}
+/* 字面浮雕 */
+.soc-btn[data-variant="default"] {
+  text-shadow: var(--btn-text-shadow-solid);
+}
+.soc-btn[data-variant="default"] svg {
+  filter: var(--btn-glyph-solid);
+}
+
+/* 黑面主按钮专档：
+   ① 基类 border-transparent + bg-clip-padding 让 1px 边框透出下层浅底，
+      黑面下缘看着像一道白色高光——把面延伸到 border-box 盖掉（键盘聚焦时
+      恢复 padding 裁切，让 focus 的 border-ring 正常显示）；
+   ② 通用投影 (黑 10%) 比黑面还浅，深色面读不出立体——投影加深一档。
+   暗色模式 default 是浅面深字，两条都不适用，维持通用档。 */
+.soc-btn[data-variant="default"]:not(:focus-visible) {
+  background-clip: border-box;
+}
+:root {
+  --btn-drop-primary:
+    0 2px 4px -1px rgb(0 0 0 / 0.4), 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --btn-drop-primary-hover:
+    0 12px 18px -4px rgb(0 0 0 / 0.35), 0 4px 8px -3px rgb(0 0 0 / 0.3);
+  --btn-drop-primary-press: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+}
+.dark {
+  --btn-drop-primary: var(--btn-drop);
+  --btn-drop-primary-hover: var(--btn-drop-hover);
+  --btn-drop-primary-press: var(--btn-drop-press);
+}
+.soc-btn[data-variant="default"]:not(:disabled) {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-primary);
+}
+.soc-btn[data-variant="default"]:not(:disabled):hover {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-primary-hover);
+}
+.soc-btn[data-variant="default"]:not(:disabled):active {
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-primary-press);
+}
+.soc-btn:is(
+  [data-variant="outline"],
+  [data-variant="secondary"],
+  [data-variant="destructive"]
+) {
+  text-shadow: var(--btn-text-shadow-surface);
+}
+.soc-btn:is(
+    [data-variant="outline"],
+    [data-variant="secondary"],
+    [data-variant="destructive"]
+  )
+  svg {
+  filter: var(--btn-glyph-surface);
+}
+/* ghost（chrome 层）：与 .ibtn-ghost 灰完全等价——静止透明中性灰，悬停以
+   灰浅底 + 卡片投影「显形」，按下加深收拢，字面浮雕常驻。ui/ 内部的关闭 X/
+   日历导航/侧栏按钮与 InputGroupButton 都是 data-variant=ghost，在此统一
+   命中，无需改动 ui/ 文件 */
+.soc-btn[data-variant="ghost"] {
+  color: var(--muted-foreground);
+  text-shadow: var(--btn-text-shadow-surface);
+}
+.soc-btn[data-variant="ghost"] svg {
+  filter: var(--btn-glyph-surface);
+}
+.soc-btn[data-variant="ghost"]:hover {
+  color: var(--ib-gray);
+  background: color-mix(in srgb, var(--ib-gray) 10%, var(--card));
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop);
+}
+.soc-btn[data-variant="ghost"]:active {
+  background: color-mix(in srgb, var(--ib-gray) 16%, var(--card));
+  box-shadow:
+    var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+    var(--btn-drop-press);
+}
+.dark .soc-btn[data-variant="ghost"]:hover {
+  color: var(--ib-gray-hi);
+  background: color-mix(in srgb, var(--ib-gray) 18%, var(--card));
+}
+.dark .soc-btn[data-variant="ghost"]:active {
+  background: color-mix(in srgb, var(--ib-gray) 24%, var(--card));
+}
+
+/* 禁用态回归纯平面 */
+.soc-btn:disabled {
+  box-shadow: none;
+  text-shadow: none;
+}
+.soc-btn:disabled svg {
+  filter: none;
+}
+
+/* ==========================================================================
+   小号输入框立体感 (borderless raised field)
+   小号(h-6/h-7)输入控件不再描边：bg-background 面 + 选中行 rowActive 同款
+   两层投影(顶缘 inset 高光 + 柔和落影,lib/styles.js rowActive)撑出边缘。
+   不留聚焦环——这类字段(行内改名/筛选/单元格编辑)存在期间几乎一直聚焦,
+   任何 ring 都会读成一圈边框;aria-invalid 仍以 destructive 描边提示。
+   命中：[data-slot=select-trigger][data-size=sm](shadcn 小号下拉,ui/ 原样)
+   与 .soc-field-sm(Input/InputGroup 在调用点加的类;lib/styles.js
+   fieldRaised 即这个类名)。默认尺寸(h-8)的表单输入框不参与。
+   ========================================================================== */
+
+:root {
+  --field-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 1px rgba(0, 0, 0, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.06), 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.dark {
+  --field-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 1px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.soc-field-sm,
+[data-slot="select-trigger"][data-size="sm"] {
+  border-color: transparent;
+  background-color: var(--background);
+  box-shadow: var(--field-raised);
+}
+/* 聚焦/悬停不变面、不加环：投影就是边缘 */
+.soc-field-sm:focus-visible,
+[data-slot="select-trigger"][data-size="sm"]:is(
+    :hover,
+    :focus-visible,
+    [data-state="open"]
+  ) {
+  border-color: transparent;
+  background-color: var(--background);
+  box-shadow: var(--field-raised);
+}
+/* InputGroup 容器：环挂在容器上(has-[control:focus-visible]),一并抹平 */
+.soc-field-sm[data-slot="input-group"]:has(
+    [data-slot="input-group-control"]:focus-visible
+  ) {
+  border-color: transparent;
+  box-shadow: var(--field-raised);
+}
+/* 校验失败仍要看得见 */
+.soc-field-sm[aria-invalid="true"],
+[data-slot="select-trigger"][data-size="sm"][aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+/* 禁用态回归平面 */
+.soc-field-sm:disabled,
+[data-slot="select-trigger"][data-size="sm"]:disabled {
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   语义色图标按钮 (.ibtn / IconButton 组件)
+   7 个语义色 × 实心/soft × 4 档尺寸。纯色面 + 上方模块卡片同款投影
+   （--btn-drop* token），立体感只在图标浮雕。颜色即语义：red=破坏性(删除/
+   封禁/禁止) green=确认执行 blue=同步/新增 orange=通知告警 purple=AI
+   cyan=查询导出 gray=中性。表格行内用 soft，工具栏主动作用实心。
+   ========================================================================== */
+
+:root {
+  --ib-blue-hi: #5b8cff;
+  --ib-blue: #2e6be6;
+  --ib-blue-lo: #1f4fc0;
+  --ib-green-hi: #3fcb7c;
+  --ib-green: #1fa65a;
+  --ib-green-lo: #157a42;
+  --ib-red-hi: #ff6b5e;
+  --ib-red: #e23d3d;
+  --ib-red-lo: #b22a2f;
+  --ib-orange-hi: #ffb224;
+  --ib-orange: #f08c00;
+  --ib-orange-lo: #c56a00;
+  --ib-purple-hi: #a47cff;
+  --ib-purple: #7c4de0;
+  --ib-purple-lo: #5b33b8;
+  --ib-cyan-hi: #2fc4dd;
+  --ib-cyan: #0e9bb5;
+  --ib-cyan-lo: #0a7489;
+  --ib-gray-hi: #8b95a5;
+  --ib-gray: #5c6675;
+  --ib-gray-lo: #3f4854;
+}
+
+.ibtn {
+  --ib-hi: var(--ib-gray-hi);
+  --ib-base: var(--ib-gray);
+  --ib-lo: var(--ib-gray-lo);
+  --ib-sz: 1.75rem;
+  --ib-rad: 0.5rem;
+  --ib-glyph: 0.9375rem;
+  width: var(--ib-sz);
+  height: var(--ib-sz);
+  border-radius: var(--ib-rad);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #fff;
+  background: var(--ib-base);
+  box-shadow: var(--btn-drop);
+  transition:
+    box-shadow 0.2s ease-out,
+    transform 0.13s ease,
+    background-color 0.13s ease;
+}
+.ibtn svg {
+  width: var(--ib-glyph);
+  height: var(--ib-glyph);
+  flex: none;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
+}
+.ibtn:hover {
+  box-shadow: var(--btn-drop-hover);
+}
+.ibtn:active {
+  transform: translateY(1px);
+  background: color-mix(in srgb, var(--ib-lo) 30%, var(--ib-base));
+  box-shadow: var(--btn-drop-press);
+}
+.ibtn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ib-base) 70%, transparent);
+  outline-offset: 2px;
+}
+.ibtn:disabled {
+  pointer-events: none;
+  color: rgb(255 255 255 / 0.6);
+  background: color-mix(in srgb, var(--ib-base) 32%, var(--card));
+  box-shadow: none;
+}
+.ibtn:disabled svg {
+  filter: none;
+}
+
+/* soft 变体：浅底彩字，行内低强调；图标浮雕同浅面按钮（凹版/暗影） */
+.ibtn-soft {
+  color: var(--ib-base);
+  background: color-mix(in srgb, var(--ib-base) 12%, var(--card));
+}
+.ibtn-soft svg {
+  filter: var(--btn-glyph-surface);
+}
+.ibtn-soft:active {
+  background: color-mix(in srgb, var(--ib-base) 18%, var(--card));
+}
+.ibtn-soft:disabled {
+  color: color-mix(in srgb, var(--ib-base) 55%, var(--muted-foreground));
+  background: color-mix(in srgb, var(--ib-base) 7%, var(--card));
+}
+.dark .ibtn-soft {
+  color: var(--ib-hi);
+  background: color-mix(in srgb, var(--ib-base) 22%, var(--card));
+}
+.dark .ibtn-soft:active {
+  background: color-mix(in srgb, var(--ib-base) 28%, var(--card));
+}
+
+/* outline 变体：卡片白面 + 描边 + 语义色图标（浅面凹版浮雕）。落在内容
+   之上的独立控件（悬浮球）用它——白面在任何底色上都由描边+投影撑出轮廓 */
+.ibtn-outline {
+  color: var(--ib-base);
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.ibtn-outline svg {
+  filter: var(--btn-glyph-surface);
+}
+.ibtn-outline:active {
+  background: color-mix(in srgb, var(--ib-base) 8%, var(--card));
+}
+.ibtn-outline:disabled {
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+.dark .ibtn-outline {
+  color: var(--ib-hi);
+}
+
+/* AI 悬浮球收纳态：静止（未悬停）时把手用抬升档投影 + 边框微加深，
+   让贴边只露 14px 圆弧时也能被注意到；悬停弹出后回归 .ibtn 常规投影 */
+.fai-docked:not(:hover) {
+  border-color: color-mix(in srgb, var(--border) 60%, var(--muted-foreground));
+  box-shadow: var(--btn-drop-hover);
+}
+
+/* ghost 变体：chrome 层。静止透明隐形（中性灰字），悬停以语义色浅底 +
+   卡片投影「显形」，按下收拢——soft 的安静版 */
+.ibtn-ghost {
+  color: var(--muted-foreground);
+  background: transparent;
+  box-shadow: none;
+}
+.ibtn-ghost svg {
+  filter: var(--btn-glyph-surface);
+}
+.ibtn-ghost:hover {
+  color: var(--ib-base);
+  background: color-mix(in srgb, var(--ib-base) 10%, var(--card));
+  box-shadow: var(--btn-drop);
+}
+.ibtn-ghost:active {
+  background: color-mix(in srgb, var(--ib-base) 16%, var(--card));
+  box-shadow: var(--btn-drop-press);
+}
+.ibtn-ghost:disabled {
+  color: var(--muted-foreground);
+  background: transparent;
+  box-shadow: none;
+}
+.dark .ibtn-ghost:hover {
+  color: var(--ib-hi);
+  background: color-mix(in srgb, var(--ib-base) 18%, var(--card));
+}
+.dark .ibtn-ghost:active {
+  background: color-mix(in srgb, var(--ib-base) 24%, var(--card));
+}
+
+/* 颜色 */
+.ibtn-blue {
+  --ib-hi: var(--ib-blue-hi);
+  --ib-base: var(--ib-blue);
+  --ib-lo: var(--ib-blue-lo);
+}
+.ibtn-green {
+  --ib-hi: var(--ib-green-hi);
+  --ib-base: var(--ib-green);
+  --ib-lo: var(--ib-green-lo);
+}
+.ibtn-red {
+  --ib-hi: var(--ib-red-hi);
+  --ib-base: var(--ib-red);
+  --ib-lo: var(--ib-red-lo);
+}
+.ibtn-orange {
+  --ib-hi: var(--ib-orange-hi);
+  --ib-base: var(--ib-orange);
+  --ib-lo: var(--ib-orange-lo);
+}
+.ibtn-purple {
+  --ib-hi: var(--ib-purple-hi);
+  --ib-base: var(--ib-purple);
+  --ib-lo: var(--ib-purple-lo);
+}
+.ibtn-cyan {
+  --ib-hi: var(--ib-cyan-hi);
+  --ib-base: var(--ib-cyan);
+  --ib-lo: var(--ib-cyan-lo);
+}
+.ibtn-gray {
+  --ib-hi: var(--ib-gray-hi);
+  --ib-base: var(--ib-gray);
+  --ib-lo: var(--ib-gray-lo);
+}
+/* ai：AI 助手专属，面色 = 侧栏模块选中色（--sidebar-primary 黑，明暗自适应） */
+.ibtn-ai {
+  --ib-hi: color-mix(in srgb, var(--sidebar-primary) 65%, white);
+  --ib-base: var(--sidebar-primary);
+  --ib-lo: color-mix(in srgb, var(--sidebar-primary) 72%, black);
+}
+
+/* 尺寸（对齐 shadcn icon-xs/sm/icon/icon-lg 的 24/28/32/36） */
+.ibtn-xs {
+  --ib-sz: 1.5rem;
+  --ib-rad: 0.4375rem;
+  --ib-glyph: 0.875rem;
+}
+.ibtn-sm {
+  --ib-sz: 1.75rem;
+  --ib-rad: 0.5rem;
+  --ib-glyph: 0.9375rem;
+}
+.ibtn-md {
+  --ib-sz: 2rem;
+  --ib-rad: 0.5625rem;
+  --ib-glyph: 1rem;
+}
+.ibtn-lg {
+  --ib-sz: 2.25rem;
+  --ib-rad: 0.625rem;
+  --ib-glyph: 1.125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ibtn {
+    transition: none;
+  }
+}
+
+/* Faint hairline scrollbar — a thin vertical line that hints at scroll without
+   the chunky native track. Used by the 待处理消息 inbox. */
+@utility thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--border) 80%, transparent)
+    transparent;
+  &::-webkit-scrollbar {
+    width: 3px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--border) 80%, transparent);
+    border-radius: 9999px;
+  }
 }
