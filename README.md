@@ -1,21 +1,12 @@
-# React + TypeScript + Vite + shadcn/ui
+# soc-web-shadcn
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+NNGSOC 平台前端 — Vite + React 19 + shadcn/ui，开发端口 :9200。
 
-## Adding components
-
-To add components to your app, run the following command:
+开发文档（技术栈、模块结构、shadcn 规则、验证方式）见 [CLAUDE.md](./CLAUDE.md)；
+后端启动与整体架构见仓库根目录 `../CLAUDE.md`。
 
 ```bash
-npx shadcn@latest add button
-```
-
-This will place the ui components in the `src/components` directory.
-
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
+npm install
+npm run dev      # :9200，需要三个 Go 后端在 :8080/:8081/:8090
+npm run build    # 唯一正确性验证
 ```
