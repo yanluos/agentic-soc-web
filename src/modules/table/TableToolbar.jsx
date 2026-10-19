@@ -48,7 +48,7 @@ export function TableToolbar({
   const sortActive = !!sort
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-2">
       <div className="flex items-center gap-2">
         <h3 className="text-base font-semibold">{title}</h3>
         {typeof total === "number" ? (

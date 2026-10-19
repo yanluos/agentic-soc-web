@@ -1,35 +1,39 @@
-import { useEffect, useState } from "react"
-import { Moon, Sun } from "lucide-react"
-import { IconButton } from "@/components/IconButton.jsx"
+// 用户菜单里的「外观」子菜单:浅色 / 深色 / 跟随系统(原顶栏太阳/月亮按钮,
+// 2026-10-12 移入用户菜单)。只存本浏览器 localStorage,不是服务端设置。
+import { Monitor, Moon, Palette, Sun } from "lucide-react"
+import {
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider.jsx"
 
-export function ModeToggle() {
-  const { setTheme } = useTheme()
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains("dark"),
-  )
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains("dark"))
-    })
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    })
-    return () => observer.disconnect()
-  }, [])
-
+export function ThemeSubMenu() {
+  const { theme, setTheme } = useTheme()
   return (
-    <IconButton
-      color="gray"
-      variant="ghost"
-      size="sm"
-      aria-label="切换主题"
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-    >
-      <Sun className="dark:hidden" />
-      <Moon className="hidden dark:block" />
-    </IconButton>
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <Palette />
+        外观
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent>
+        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+          <DropdownMenuRadioItem value="light">
+            <Sun />
+            浅色
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">
+            <Moon />
+            深色
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">
+            <Monitor />
+            跟随系统
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   )
 }

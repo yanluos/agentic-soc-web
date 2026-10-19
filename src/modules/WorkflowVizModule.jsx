@@ -67,6 +67,7 @@ import {
 import { WorkflowEditor } from "@/modules/workflow/WorkflowEditor.jsx"
 import { stepsToGraph } from "@/modules/workflow/parseWorkflow.js"
 import { buildTablePath } from "@/api.js"
+import { subscribeWorkflowEvents } from "@/lib/workflowEvents.js"
 import { cn } from "@/lib/utils"
 import { statusBadgeVariant } from "@/utils.js"
 
@@ -472,6 +473,7 @@ export function WorkflowVizModule({ apiClient, setError }) {
   const [runPage, setRunPage] = useState(1)
   const [runHasNext, setRunHasNext] = useState(false)
   const [runLoading, setRunLoading] = useState(false)
+  const [runsReloadTick, setRunsReloadTick] = useState(0) // bump → refetch run page 1
 
   const RUN_PAGE_SIZE = 20
 
@@ -489,8 +491,9 @@ export function WorkflowVizModule({ apiClient, setError }) {
     reloadSubs()
   }, [reloadSubs])
 
-  const reload = useCallback(async () => {
-    setLoading(true)
+  // silent=true is the live-feed refresh: no spinner, no error toast.
+  const reload = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true)
     try {
       const list = await apiClient.get("/api/v1/workflows/")
       const arr = Array.isArray(list) ? list : list?.workflows || list?.definitions || []
@@ -498,10 +501,12 @@ export function WorkflowVizModule({ apiClient, setError }) {
       if (arr.length > 0 && !selected) {
         setSelected(arr[0])
       }
+      return arr
     } catch (err) {
-      setError?.(err.message)
+      if (!silent) setError?.(err.message)
+      return null
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [apiClient, setError, selected])
 
@@ -643,7 +648,83 @@ export function WorkflowVizModule({ apiClient, setError }) {
     return () => {
       cancelled = true
     }
-  }, [selected?.id, runPage, apiClient, setError])
+  }, [selected?.id, runPage, runsReloadTick, apiClient, setError])
+
+  // ── live updates ───────────────────────────────────────────────────────────
+  // soc-ai pushes every def/run write over SSE (lib/workflowEvents.js). Run
+  // rows are patched in place from the event (new runs of the selected def are
+  // prepended, so infinite-scroll pages stay put); the open run detail and the
+  // definition list are refetched, debounced. A (re)connect resyncs everything.
+  const liveRef = useRef({})
+  liveRef.current = { selectedId: selected?.id, activeRunId: activeRun?.id, editEnabled, reload }
+  useEffect(() => {
+    const timers = {}
+    const debounce = (key, fn, ms) => {
+      clearTimeout(timers[key])
+      timers[key] = setTimeout(fn, ms)
+    }
+    const refreshActiveRun = () => {
+      const id = liveRef.current.activeRunId
+      if (!id) return
+      apiClient
+        .get(`/api/v1/workflows/runs/${id}`)
+        .then((detail) => setActiveRun((cur) => (cur && String(cur.id) === String(id) ? detail : cur)))
+        .catch(() => {})
+    }
+    const refreshDefs = () => {
+      liveRef.current.reload({ silent: true }).then((arr) => {
+        if (!arr) return
+        const { selectedId, editEnabled: editing } = liveRef.current
+        if (!selectedId) return
+        const fresh = arr.find((d) => String(d.id) === String(selectedId))
+        // Never swap the def under an in-progress canvas edit; skip no-op swaps
+        // (a new `selected` object re-runs the mount-time reload effect).
+        if (fresh && !editing) {
+          setSelected((cur) => (cur && JSON.stringify(cur) === JSON.stringify(fresh) ? cur : fresh))
+        }
+      })
+    }
+    const unsubscribe = subscribeWorkflowEvents((ev) => {
+      const { selectedId, activeRunId } = liveRef.current
+      if (ev.kind === "resync") {
+        setRunPage(1)
+        setRunsReloadTick((t) => t + 1)
+        debounce("defs", refreshDefs, 300)
+        debounce("run", refreshActiveRun, 300)
+        return
+      }
+      if (ev.kind === "def") {
+        if (ev.op === "deleted" && String(ev.id) === String(selectedId)) setSelected(null)
+        debounce("defs", refreshDefs, 500)
+        return
+      }
+      if (ev.kind !== "run") return
+      if (activeRunId && String(ev.id) === String(activeRunId)) debounce("run", refreshActiveRun, 400)
+      if (ev.op === "step") return
+      if (!selectedId || String(ev.def_id) !== String(selectedId)) return
+      const patch = {
+        status: ev.status,
+        error: ev.error || "",
+        tokens_used: ev.tokens_used,
+        llm_calls: ev.llm_calls,
+      }
+      setRuns((prev) => {
+        const i = prev.findIndex((r) => String(r.id) === String(ev.id))
+        if (i >= 0) {
+          const next = prev.slice()
+          const r = prev[i]
+          next[i] = r.fields ? { ...r, fields: { ...r.fields, ...patch } } : { ...r, ...patch }
+          return next
+        }
+        if (ev.op !== "created") return prev
+        return [{ id: ev.id, fields: { ...patch, def_id: ev.def_id, CreatedAt: ev.at } }, ...prev]
+      })
+    })
+    return () => {
+      unsubscribe()
+      Object.values(timers).forEach(clearTimeout)
+    }
+  }, [apiClient])
 
   // Infinite scroll: load the next run-history page when the sentinel appears.
   const runSentinelRef = useRef(null)

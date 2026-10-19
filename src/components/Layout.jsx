@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
 import {
-  ArrowLeft,
-  ArrowRight,
   KeyRound,
   LogOut,
   ShieldAlert,
@@ -75,9 +73,11 @@ import {
 } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ModeToggle } from "@/components/ModeToggle.jsx"
+import { ThemeSubMenu } from "@/components/ModeToggle.jsx"
+import { TopBarSlotContext } from "@/components/TopBarSlot.jsx"
 import { moduleGroups, resolveIcon } from "@/constants.js"
 import { useAutofillSync, fieldValue } from "@/hooks/use-autofill-sync.js"
+import { subscribeWorkflowEvents } from "@/lib/workflowEvents.js"
 
 const GROUP_COLLAPSED_KEY = "sidebar:groupCollapsed"
 const SIDEBAR_WIDTH_KEY = "sidebar:width"
@@ -95,15 +95,13 @@ export function AppShell({
   allModules,
   activeModule,
   onNavigate,
-  canGoBack,
-  canGoForward,
-  onBack,
-  onForward,
   currentUser,
   onLogout,
   apiClient,
   appVersion = "v0.1",
 }) {
+  // 顶栏插槽节点(callback ref 存进 state,挂上后模块的 TopBarPortal 才会重渲染进去)。
+  const [topBarSlot, setTopBarSlot] = useState(null)
   // Resizable sidebar width (persisted).
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const raw = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY))
@@ -130,10 +128,7 @@ export function AppShell({
         currentUser={currentUser}
         onLogout={onLogout}
         apiClient={apiClient}
-        canGoBack={canGoBack}
-        canGoForward={canGoForward}
-        onBack={onBack}
-        onForward={onForward}
+        slotRef={setTopBarSlot}
       />
       {/* min-h-0 (not overflow-hidden) so the content card's shadow can bleed
           onto the chrome; the card clips its own content. */}
@@ -158,7 +153,9 @@ export function AppShell({
             drop shadows offset down-left so the card shades the sidebar. */}
         <SidebarInset className="overflow-hidden md:z-40 md:rounded-tl-xl md:border-l md:border-t md:shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_0_1px_rgba(0,0,0,0.06),-3px_4px_10px_rgba(0,0,0,0.05),-10px_16px_36px_rgba(0,0,0,0.08)] md:dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_1px_rgba(0,0,0,0.5),-3px_4px_10px_rgba(0,0,0,0.35),-10px_16px_36px_rgba(0,0,0,0.5)]">
           <main className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4 md:p-6">
-            {children}
+            <TopBarSlotContext.Provider value={topBarSlot}>
+              {children}
+            </TopBarSlotContext.Provider>
           </main>
         </SidebarInset>
       </div>
@@ -342,12 +339,25 @@ function ApprovalInbox({ apiClient }) {
     }
   }, [apiClient])
 
-  // Poll every 15s, and refresh immediately whenever the panel is opened so the
-  // queue reflects approvals just handled elsewhere (Appia / email one-click).
+  // Live: soc-ai pushes every run status change (lib/workflowEvents.js) — a run
+  // entering or leaving waiting_approval (decided via Appia / email one-click /
+  // another tab) refreshes the queue. The 60s poll is only a fallback for a
+  // dropped stream; opening the panel also refreshes.
   useEffect(() => {
     load()
-    const t = setInterval(load, 15000)
-    return () => clearInterval(t)
+    const t = setInterval(load, 60000)
+    let debounce = null
+    const unsubscribe = subscribeWorkflowEvents((ev) => {
+      if (ev.kind === "resync" || (ev.kind === "run" && ev.op !== "step")) {
+        clearTimeout(debounce)
+        debounce = setTimeout(load, 500)
+      }
+    })
+    return () => {
+      clearInterval(t)
+      clearTimeout(debounce)
+      unsubscribe()
+    }
   }, [load])
 
   useEffect(() => {
@@ -512,10 +522,7 @@ function TopBar({
   currentUser,
   onLogout,
   apiClient,
-  canGoBack,
-  canGoForward,
-  onBack,
-  onForward,
+  slotRef,
 }) {
   const [pwOpen, setPwOpen] = useState(false)
   const [otpOpen, setOtpOpen] = useState(false)
@@ -554,35 +561,11 @@ function TopBar({
           Agentic SOC
         </span>
       </div>
-      {/* Browser-style module history — driven by App.jsx's nav stack, so it
-          works for sidebar clicks and AI navigate actions alike. Sits at the
-          content card's top-left corner (md:pl-4 + the header gap ≈ the card's
-          md:p-6 content inset). */}
-      <div className="flex items-center gap-1.5 md:pl-4">
-        <IconButton
-          color="gray"
-          variant="soft"
-          size="sm"
-          aria-label="返回"
-          disabled={!canGoBack}
-          onClick={onBack}
-        >
-          <ArrowLeft />
-        </IconButton>
-        <IconButton
-          color="gray"
-          variant="soft"
-          size="sm"
-          aria-label="前进"
-          disabled={!canGoForward}
-          onClick={onForward}
-        >
-          <ArrowRight />
-        </IconButton>
-      </div>
-      <div className="ml-auto flex items-center gap-2">
+      {/* 模块工具栏插槽(TopBarPortal 渲染进来):紧跟品牌区,md:pl-4 + header
+          gap ≈ 内容卡片的 md:p-6 内衬,与卡片内容左缘对齐。 */}
+      <div ref={slotRef} className="flex min-w-0 flex-1 items-center md:pl-4 md:pr-4" />
+      <div className="flex shrink-0 items-center gap-2">
         <ApprovalInbox apiClient={apiClient} />
-        <ModeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <IconButton
@@ -616,6 +599,7 @@ function TopBar({
               <ShieldCheck />
               两步验证
             </DropdownMenuItem>
+            <ThemeSubMenu />
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onLogout}>
               <LogOut />

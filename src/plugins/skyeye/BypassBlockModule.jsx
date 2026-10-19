@@ -54,6 +54,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { FilterPanel } from "@/modules/table/FilterPanel.jsx"
+import { TopBarPortal, TopBarSlotContext, useTopBarSlotNode } from "@/platform"
 import { countClauses, emptyTree, nodeToWhere } from "@/modules/table/filterOps.js"
 
 const DEVICE_STATUS_VARIANT = {
@@ -67,6 +68,7 @@ const BLOCK_STATUS_VARIANT = {
   pending: "warning",
   synced: "success",
   failed: "destructive",
+  unblock_failed: "destructive",
 }
 
 const BLOCK_TIMEOUT_PRESETS = [
@@ -82,31 +84,37 @@ const BLOCK_TYPES = [
 ]
 
 export function BypassBlockModule({ apiClient, setError }) {
+  // 标题 + 标签切换进顶栏;当前标签的工具栏 portal 进其后的子插槽。两个标签
+  // forceMount(切换不丢状态),所以非活动标签的工具栏用 hidden 不渲染。
+  const [tab, setTab] = useState("devices")
+  const [tabSlot, tabSlotRef] = useTopBarSlotNode()
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold">旁路阻断</h2>
-        <p className="text-sm text-muted-foreground">管理探针设备和阻断规则</p>
-      </div>
-      <Tabs defaultValue="devices">
-        <TabsList>
-          <TabsTrigger value="devices">探针设备</TabsTrigger>
-          <TabsTrigger value="blocks">阻断规则</TabsTrigger>
-        </TabsList>
+    <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-4">
+      <TopBarPortal>
+        <div className="flex w-full min-w-0 items-center gap-3">
+          <h2 className="shrink-0 text-base font-semibold">旁路阻断</h2>
+          <TabsList>
+            <TabsTrigger value="devices">探针设备</TabsTrigger>
+            <TabsTrigger value="blocks">阻断规则</TabsTrigger>
+          </TabsList>
+          <div ref={tabSlotRef} className="flex min-w-0 flex-1 items-center" />
+        </div>
+      </TopBarPortal>
+      <TopBarSlotContext.Provider value={tabSlot}>
         <TabsContent value="devices" forceMount className="hidden data-[state=active]:block">
-          <DevicesTab apiClient={apiClient} setError={setError} />
+          <DevicesTab apiClient={apiClient} setError={setError} active={tab === "devices"} />
         </TabsContent>
         <TabsContent value="blocks" forceMount className="hidden data-[state=active]:block">
-          <BlocksTab apiClient={apiClient} setError={setError} />
+          <BlocksTab apiClient={apiClient} setError={setError} active={tab === "blocks"} />
         </TabsContent>
-      </Tabs>
-    </div>
+      </TopBarSlotContext.Provider>
+    </Tabs>
   )
 }
 
 // ── Devices ─────────────────────────────────────────────────────────────
 
-function DevicesTab({ apiClient, setError }) {
+function DevicesTab({ apiClient, setError, active }) {
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(true)
   const [editTarget, setEditTarget] = useState(null)
@@ -130,16 +138,23 @@ function DevicesTab({ apiClient, setError }) {
 
   return (
     <>
-      <div className="mb-3 flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
-          <RefreshCw data-icon="inline-start" />
-          刷新
-        </Button>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus data-icon="inline-start" />
-          新增探针
-        </Button>
-      </div>
+      <TopBarPortal hidden={!active}>
+        <div className="ml-auto flex items-center gap-2">
+          <IconButton
+            color="blue"
+            size="sm"
+            onClick={reload}
+            disabled={loading}
+            aria-label="刷新"
+          >
+            {loading ? <Spinner /> : <RefreshCw />}
+          </IconButton>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus data-icon="inline-start" />
+            新增探针
+          </Button>
+        </div>
+      </TopBarPortal>
       <Card className={cardHover}>
         <CardContent className="p-0">
           <Table>
@@ -381,6 +396,7 @@ const BLOCK_FILTER_COLUMNS = [
       { value: "pending", label: "待同步 pending" },
       { value: "synced", label: "已同步 synced" },
       { value: "failed", label: "失败 failed" },
+      { value: "unblock_failed", label: "解封未完成 unblock_failed" },
     ],
   },
   { field: "目标探针", label: "目标探针", filter: "text" },
@@ -391,7 +407,7 @@ const BLOCK_FILTER_COLUMNS = [
   { field: "CreatedAt", label: "创建时间", filter: "date" },
 ]
 
-function BlocksTab({ apiClient, setError }) {
+function BlocksTab({ apiClient, setError, active }) {
   const [devices, setDevices] = useState([])
   const [blocks, setBlocks] = useState([])
   const [total, setTotal] = useState(null)
@@ -497,64 +513,65 @@ function BlocksTab({ apiClient, setError }) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold">阻断规则</h3>
-          {typeof total === "number" ? (
-            <span className="text-xs text-muted-foreground">共 {total} 条</span>
-          ) : null}
-        </div>
-        <Separator orientation="vertical" className="mx-1 h-5" />
-        <Popover
-          open={filterOpen}
-          onOpenChange={(open) => {
-            if (open) setFilterDraft(filterTree)
-            else {
-              setFilterTree(filterDraft)
-              setPage(1)
-            }
-            setFilterOpen(open)
-          }}
-        >
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <ListFilter />
-              筛选
-              {filterCount > 0 ? (
-                <Badge variant="secondary" className="ml-1">
-                  {filterCount}
-                </Badge>
-              ) : null}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[600px] p-3" align="start">
-            <FilterPanel
-              tree={filterDraft}
-              columns={BLOCK_FILTER_COLUMNS}
-              onChange={setFilterDraft}
-            />
-          </PopoverContent>
-        </Popover>
-        <div className="ml-auto flex items-center gap-2">
-          <IconButton
-            color="blue"
-            size="sm"
-            onClick={reload}
-            disabled={loading}
-            aria-label="刷新"
+      <TopBarPortal hidden={!active}>
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <Separator orientation="vertical" className="mx-1 h-5" />
+          <div className="flex items-center gap-2">
+            {typeof total === "number" ? (
+              <span className="text-xs text-muted-foreground">共 {total} 条</span>
+            ) : null}
+          </div>
+          <Popover
+            open={filterOpen}
+            onOpenChange={(open) => {
+              if (open) setFilterDraft(filterTree)
+              else {
+                setFilterTree(filterDraft)
+                setPage(1)
+              }
+              setFilterOpen(open)
+            }}
           >
-            {loading ? <Spinner /> : <RefreshCw />}
-          </IconButton>
-          <Button variant="outline" size="sm" onClick={runReconcile}>
-            <GitCompare data-icon="inline-start" />
-            对账
-          </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus data-icon="inline-start" />
-            新增阻断
-          </Button>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <ListFilter />
+                筛选
+                {filterCount > 0 ? (
+                  <Badge variant="secondary" className="ml-1">
+                    {filterCount}
+                  </Badge>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[600px] p-3" align="start">
+              <FilterPanel
+                tree={filterDraft}
+                columns={BLOCK_FILTER_COLUMNS}
+                onChange={setFilterDraft}
+              />
+            </PopoverContent>
+          </Popover>
+          <div className="ml-auto flex items-center gap-2">
+            <IconButton
+              color="blue"
+              size="sm"
+              onClick={reload}
+              disabled={loading}
+              aria-label="刷新"
+            >
+              {loading ? <Spinner /> : <RefreshCw />}
+            </IconButton>
+            <Button variant="outline" size="sm" onClick={runReconcile}>
+              <GitCompare data-icon="inline-start" />
+              对账
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus data-icon="inline-start" />
+              新增阻断
+            </Button>
+          </div>
         </div>
-      </div>
+      </TopBarPortal>
       <Card className={cardHover}>
         <CardContent className="p-0">
           <Table>
@@ -584,7 +601,14 @@ function BlocksTab({ apiClient, setError }) {
                 </TableRow>
               ) : (
                 blocks.map((b) => (
-                  <TableRow key={b.id} className={b.status === "failed" ? "bg-destructive/5" : undefined}>
+                  <TableRow
+                    key={b.id}
+                    className={
+                      b.status === "failed" || b.status === "unblock_failed"
+                        ? "bg-destructive/5"
+                        : undefined
+                    }
+                  >
                     <TableCell>{b.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{b.type}</Badge>
@@ -606,24 +630,30 @@ function BlocksTab({ apiClient, setError }) {
                       {b.timeout === -1 ? "永久" : `${Math.round(b.timeout / 3600)}h`}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={BLOCK_STATUS_VARIANT[b.status] || "outline"}>
-                        {b.status || "unknown"}
+                      <Badge
+                        variant={BLOCK_STATUS_VARIANT[b.status] || "outline"}
+                        title={b.error || undefined}
+                      >
+                        {b.status === "unblock_failed" ? "解封未完成" : b.status || "unknown"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {b.status === "failed" ? (
+                        {b.status === "failed" || b.status === "unblock_failed" ? (
                           <IconButton
                             color="blue"
                             variant="soft"
                             size="sm"
-                            aria-label="重试"
+                            aria-label={b.status === "unblock_failed" ? "重试解封" : "重试"}
+                            title={b.status === "unblock_failed" ? "重试解封（删除剩余探针上的规则）" : "重试下发"}
                             onClick={async () => {
                               try {
                                 await apiClient.post(
                                   `/api/v1/probe/blocks/${b.id}/retry`,
                                 )
-                                toast.success("已重试")
+                                toast.success(
+                                  b.status === "unblock_failed" ? "解封已完成" : "已重试",
+                                )
                                 reload()
                               } catch (err) {
                                 setError?.(err.message)

@@ -38,6 +38,7 @@ import { dropdownCls, VeilSelectItem } from "@/modules/table/veilSelect.jsx"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
 
 import { TableToolbar } from "@/modules/table/TableToolbar.jsx"
+import { TopBarPortal } from "@/components/TopBarSlot.jsx"
 import { useTableViewState } from "@/modules/table/useTableViewState.js"
 import { nodeToWhere } from "@/modules/table/filterOps.js"
 import {
@@ -69,6 +70,9 @@ export function GenericTableModule({
   showEdit = true,
   renderItem,
   renderCreate,
+  // 工具栏放进顶栏插槽(TopBarPortal;带标签页的模块可提供子插槽,见
+  // components/TopBarSlot.jsx)。传 false 则留在列表上方原地渲染。
+  toolbarInTopBar = true,
   // Optional PATCH-path override (id → path) for tables whose edits must go
   // through a dedicated business endpoint (e.g. tickets: server-side 处理记录
   // timeline stamping) instead of the raw generic-table record PATCH.
@@ -437,6 +441,7 @@ export function GenericTableModule({
 
   return (
     <div className="flex flex-col gap-3">
+      <TopBarPortal enabled={toolbarInTopBar}>
       <TableToolbar
         title={label}
         total={totalLabel}
@@ -455,6 +460,7 @@ export function GenericTableModule({
             : undefined
         }
       />
+      </TopBarPortal>
       {renderItem ? (
         <div className="flex flex-col gap-2">
           {recordsLoading && records.length === 0 ? (

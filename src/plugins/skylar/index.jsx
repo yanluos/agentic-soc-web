@@ -1,9 +1,9 @@
-// 奇安信天擎 (tianqing) plugin — no sidebar module; contributes the 天擎 ODP
+// 奇安信天擎 (skylar, was tianqing) plugin — no sidebar module; contributes the 天擎 ODP
 // credentials section (插件管理 page) and the 天擎 tool-source grouping.
 import { ShieldCheck, Shield } from "lucide-react"
 
 export default {
-  id: "tianqing",
+  id: "skylar",
   sdk: "1",
   modules: [],
   hiddenTables: [],

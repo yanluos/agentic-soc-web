@@ -156,7 +156,7 @@ const GUIDE = `
 | 权限 | 进程内全信任 | 仅自己的令牌，只能写自己的表 |
 | 适用 | 平台自维护的核心能力 | 第三方、异构、需隔离、独立演进 |
 
-参考实现：进程内看 \`soc-server/plugins/probe\`；远程看 \`fscan-runner\`（主动探测）与 \`examples/remote-plugin-hello\`。
+参考实现：进程内看 \`soc-server/plugins/skyeye\`；远程看 \`fscan-runner\`（主动探测）与 \`examples/remote-plugin-hello\`。
 
 ---
 
@@ -201,7 +201,7 @@ soc-web-shadcn/src/plugins/<id>/index.jsx   前端描述符（极小）
   "settings_sections": [{ "name": "scan", "class": "hot", "secret_keys": ["api_key"] }],
   "tools": [{ "name": "scan_start", "aliases": ["active_scan_start"],
     "side_effect": true, "requires_approval": { "param": "mode", "values": ["bruteforce","exploit"] } }],
-  "depends": [{ "id": "probe", "version": "^1", "optional": false }],
+  "depends": [{ "id": "skyeye", "version": "^1", "optional": false }],
   "provides": ["scan.Service@v1"],
   "health_checks": ["fscan_runner"],
   "assistant_prompt": "assistant.md",

@@ -60,6 +60,12 @@ src/
 ├── api.js                           — createApiClient + path builders
 ├── utils.js                         — NocoDB helpers, date/format helpers
 ├── lib/utils.js                     — cn() (do not edit)
+├── lib/workflowEvents.js            — 工作流实时变更流:单例 SSE(fetch+Bearer,
+│                                      GET /api/v1/workflows/events),首个订阅者建连、
+│                                      最后一个退订断开,断线指数退避重连,每次(重)连上
+│                                      发 {kind:"resync"} 让订阅者补拉;401/403 不重试。
+│                                      WorkFlow 页(运行行原地更新/新 run 置顶/详情与
+│                                      定义列表去抖重拉,编辑中不替换 selected)与审批铃铛共用
 ├── hooks/
 │   ├── use-mobile.js                — useIsMobile (do not edit)
 │   └── use-autofill-sync.js         — 让受控 input 接住密码管理器的自动填充:
@@ -100,6 +106,14 @@ src/
 │   │                                  origin 下 navigator.clipboard 不存在,回退 execCommand)。
 │   │                                  安全事件/工单卡片折叠态可见的标题、ID、人名、公司、
 │   │                                  资产、IOC、时间都用它;展开区暂不用
+│   ├── TopBarSlot.jsx               — 顶栏插槽(前进/后退按钮 2026-10-12 删除后的位置):
+│   │                                  模块用 TopBarPortal 把自己的标题/工具栏 portal 进顶栏,
+│   │                                  滚动时常驻。GenericTableModule 工具栏默认进(toolbarInTopBar);
+│   │                                  带标签页的模块把「标题+TabsList+子插槽」放进去,再用
+│   │                                  TopBarSlotContext.Provider 包住标签内容,标签内的工具栏
+│   │                                  落进子插槽(旁路阻断/主动探测;forceMount 的非活动标签传
+│   │                                  hidden)。经 @/platform 导出;远程插件包里的副本复用
+│   │                                  window.__SOC_SDK__.platform.TopBarSlotContext 才进得了顶栏
 │   ├── InlineRename.jsx             — 行内改名小输入框(替代 window.prompt):挂载即聚焦全选,
 │   │                                  Enter/失焦提交、Esc 取消,只回调一次;h-6 text-xs 嵌在
 │   │                                  RailRow 里原位替换名字,事件不冒泡给宿主行。AI 助手会话

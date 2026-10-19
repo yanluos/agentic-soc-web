@@ -421,10 +421,6 @@ export function App() {
       allModules={visibleModules}
       activeModule={activeModule}
       onNavigate={navigateTo}
-      canGoBack={canGoBack}
-      canGoForward={canGoForward}
-      onBack={goBack}
-      onForward={goForward}
       currentUser={currentUser}
       onLogout={handleLogout}
       apiClient={apiClient}

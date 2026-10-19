@@ -9,7 +9,7 @@ export default {
   hiddenTables: [],
   icon: Radar,
   settingsSections: [
-    { key: "intel", title: "威胁情报密钥", desc: "VirusTotal / 微步 / Serper API Key。热生效。", hot: true },
+    { key: "intel", title: "威胁情报密钥", desc: "VirusTotal / 微步 API Key。热生效。（Serper 已移到「网页搜索」插件）", hot: true },
   ],
   sources: [{ label: "威胁情报", icon: Radar, order: 40 }],
   icons: {},

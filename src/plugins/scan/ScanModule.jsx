@@ -51,6 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { TopBarPortal, TopBarSlotContext, useTopBarSlotNode } from "@/platform"
 import {
   Table,
   TableBody,
@@ -139,20 +140,32 @@ export function ScanModule({ apiClient, setError }) {
     loadConfig()
   }, [loadConfig])
 
+  // 标题 + 标签切换进顶栏;当前标签的工具栏(扫描任务按钮 / 脆弱性列表的
+  // GenericTableModule 工具栏)portal 进其后的子插槽。标签内容非 forceMount,
+  // 非活动标签整个卸载,不会两份工具栏并存。
+  const [tabSlot, tabSlotRef] = useTopBarSlotNode()
   return (
-    <div className="p-4">
+    <div>
       <Tabs defaultValue="scan" className="flex flex-col gap-4">
-        <TabsList>
-          <TabsTrigger value="scan">扫描</TabsTrigger>
-          <TabsTrigger value="vulns">脆弱性</TabsTrigger>
-        </TabsList>
+        <TopBarPortal>
+          <div className="flex w-full min-w-0 items-center gap-3">
+            <h2 className="shrink-0 text-base font-semibold">主动探测</h2>
+            <TabsList>
+              <TabsTrigger value="scan">扫描</TabsTrigger>
+              <TabsTrigger value="vulns">脆弱性</TabsTrigger>
+            </TabsList>
+            <div ref={tabSlotRef} className="flex min-w-0 flex-1 items-center" />
+          </div>
+        </TopBarPortal>
 
-        <TabsContent value="scan">
-          <ScanTab apiClient={apiClient} setError={setError} config={config} onConfigChange={setConfig} reloadConfig={loadConfig} />
-        </TabsContent>
-        <TabsContent value="vulns">
-          <VulnsTab apiClient={apiClient} setError={setError} />
-        </TabsContent>
+        <TopBarSlotContext.Provider value={tabSlot}>
+          <TabsContent value="scan">
+            <ScanTab apiClient={apiClient} setError={setError} config={config} onConfigChange={setConfig} reloadConfig={loadConfig} />
+          </TabsContent>
+          <TabsContent value="vulns">
+            <VulnsTab apiClient={apiClient} setError={setError} />
+          </TabsContent>
+        </TopBarSlotContext.Provider>
       </Tabs>
     </div>
   )
@@ -368,9 +381,9 @@ function ScanTab({ apiClient, setError, config, onConfigChange, reloadConfig }) 
       {/* 扫描任务 */}
       <Card className={cardHover}>
         <CardContent className="flex flex-col gap-3 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">扫描任务</h2>
-            <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold">扫描任务</h2>
+          <TopBarPortal>
+            <div className="ml-auto flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
                 <Settings2 data-icon="inline-start" />
                 扫描器设置
@@ -383,7 +396,7 @@ function ScanTab({ apiClient, setError, config, onConfigChange, reloadConfig }) 
                 <RefreshCw />
               </IconButton>
             </div>
-          </div>
+          </TopBarPortal>
           <Separator />
           {loadingJobs ? (
             <div className="flex justify-center py-8">

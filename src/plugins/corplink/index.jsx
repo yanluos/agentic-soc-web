@@ -1,4 +1,4 @@
-// 飞连身份 (feilian) plugin — no sidebar module; contributes the 飞连 tenant
+// 飞连身份 (corplink, was feilian) plugin — no sidebar module; contributes the 飞连 tenant
 // credentials section (插件管理 page) and the 飞连 tool-source grouping.
 import { Send, KeyRound } from "lucide-react"
 
@@ -10,7 +10,7 @@ function FeilianIcon({ className, ...props }) {
 }
 
 export default {
-  id: "feilian",
+  id: "corplink",
   sdk: "1",
   modules: [],
   hiddenTables: [],
