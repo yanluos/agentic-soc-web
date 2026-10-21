@@ -61,6 +61,7 @@ import {
 import { cn } from "@/lib/utils.js"
 
 import { useAgentChat } from "./useAgentChat.js"
+import { ENGINES, defaultModelForEngine, modelsForEngine } from "./chatStore.js"
 import { ChatMessage } from "./ChatMessage.jsx"
 import { pairToolCalls } from "./ToolCallCard.jsx"
 import { toolMeta } from "./toolMeta.js"
@@ -87,6 +88,8 @@ export function AssistantModule({ onAction }) {
   const chat = useAgentChat({ onAction, surface: "workbench" })
   const [input, setInput] = useState("")
   const [effort, setEffort] = useState("medium")
+  const engineModels = modelsForEngine(chat.models, chat.sessionEngine)
+  const engineDefault = defaultModelForEngine(chat.models, chat.sessionEngine)
   const [showSessions, setShowSessions] = useState(true)
   const [showActivity, setShowActivity] = useState(true)
   const [dragOver, setDragOver] = useState(false)
@@ -403,7 +406,27 @@ export function AssistantModule({ onAction }) {
                   ))}
                 </SelectContent>
               </Select>
-              {chat.models.length > 0 ? (
+              <Select
+                value={chat.sessionEngine || "pi"}
+                onValueChange={(v) => v && chat.setSessionEngine(v).catch(() => {})}
+              >
+                <SelectTrigger
+                  size="sm"
+                  aria-label="引擎"
+                  title="本会话使用的 agent 引擎（切换后从新上下文开始）"
+                  className="h-6 gap-1 text-[11px] text-muted-foreground"
+                >
+                  <SelectValue placeholder="引擎" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENGINES.map((e) => (
+                    <SelectItem key={e.value} value={e.value} title={e.hint}>
+                      {e.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {engineModels.length > 0 ? (
                 <Select
                   value={chat.sessionModel || DEFAULT_MODEL}
                   onValueChange={(v) =>
@@ -413,16 +436,16 @@ export function AssistantModule({ onAction }) {
                   <SelectTrigger
                     size="sm"
                     aria-label="模型"
-                    title="本会话使用的模型（默认 = 跟随平台默认模型）"
+                    title="本会话使用的模型（默认 = 该引擎的平台默认模型）"
                     className="h-6 max-w-48 gap-1 text-[11px] text-muted-foreground"
                   >
                     <SelectValue placeholder="模型" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={DEFAULT_MODEL}>
-                      默认{chat.defaultModel ? ` · ${chat.defaultModel}` : ""}
+                      默认{engineDefault ? ` · ${engineDefault.name}` : ""}
                     </SelectItem>
-                    {chat.models.map((m) => (
+                    {engineModels.map((m) => (
                       <SelectItem key={m.name} value={m.name}>
                         {m.name}
                         <span className="ml-1 font-mono text-[10px] text-muted-foreground">
@@ -432,6 +455,10 @@ export function AssistantModule({ onAction }) {
                     ))}
                   </SelectContent>
                 </Select>
+              ) : chat.models.length > 0 ? (
+                <span className="text-[11px] text-destructive">
+                  无可用模型（需在 AI 模型中添加{chat.sessionEngine === "codex" ? " OpenAI " : " Anthropic "}协议模型）
+                </span>
               ) : null}
               <span className="ml-auto">
                 {chat.streaming ? (

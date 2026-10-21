@@ -1124,6 +1124,10 @@ const EFFORT_LEVELS = [
   { value: "max", label: "最大强度" },
 ]
 
+// agent-node engines run in agent-core ("pi" is the alias of the legacy
+// "claude" value, which persisted defs carry).
+const AGENT_ENGINE_LABELS = { claude: "pi Agent", "claude-code": "Claude Code", codex: "Codex" }
+
 function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, onDelete }) {
   const d = node.data
   const kind = d.kind
@@ -1131,6 +1135,12 @@ function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, on
   const Icon = meta?.icon
   const accent = accentOf(kind)
   const selTool = tools.find((t) => t.name === d.tool)
+  const engineValue = d.engine === "pi" ? "claude" : d.engine || "builtin"
+  const agentCore = kind === "agent" && engineValue !== "builtin"
+  // Codex speaks the OpenAI Responses API; everything else (builtin loop,
+  // analyze, pi, Claude Code) needs Anthropic-protocol rows.
+  const wantApi = agentCore && engineValue === "codex" ? "openai" : "anthropic"
+  const nodeModels = models.filter((m) => (m.api || "anthropic") === wantApi)
   // Appia listener trigger: display-only — bindings live in the subscription
   // registry, not the definition.
   if (kind === "trigger") {
@@ -1264,13 +1274,16 @@ function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, on
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NODE_DEFAULT_MODEL}>默认（工作流默认 → 平台默认）</SelectItem>
-                  {models.map((m) => (
+                  {nodeModels.map((m) => (
                     <SelectItem key={m.name} value={m.name}>
                       {m.name}
                     </SelectItem>
                   ))}
-                  {d.model && !models.some((m) => m.name === d.model) ? (
-                    <SelectItem value={d.model}>{d.model}（未注册，运行时回退默认）</SelectItem>
+                  {d.model && !nodeModels.some((m) => m.name === d.model) ? (
+                    <SelectItem value={d.model}>
+                      {d.model}
+                      {models.some((m) => m.name === d.model) ? "（协议不符，运行时改用该引擎的默认模型）" : "（未注册，运行时回退默认）"}
+                    </SelectItem>
                   ) : null}
                 </SelectContent>
               </Select>
@@ -1309,7 +1322,7 @@ function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, on
             <Field>
               <FieldLabel>执行引擎</FieldLabel>
               <Select
-                value={d.engine || "builtin"}
+                value={engineValue}
                 disabled={readOnly}
                 onValueChange={(v) => onChange({ engine: v === "builtin" ? "" : v })}
               >
@@ -1319,11 +1332,13 @@ function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, on
                 <SelectContent>
                   <SelectItem value="builtin">内置循环（按选定工具多轮调用）</SelectItem>
                   <SelectItem value="claude">pi Agent（容器内自主研判，只读工具）</SelectItem>
+                  <SelectItem value="claude-code">Claude Code（容器内自主研判，只读工具）</SelectItem>
+                  <SelectItem value="codex">Codex（容器内自主研判，只读工具，需 OpenAI 协议模型）</SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                {d.engine === "claude"
-                  ? "任务整体交给 agent-core 容器里的 pi agent:自主查询身份/天眼等只读数据后给出结论。无副作用能力,封禁/通知等仍用「工具」+「人工审批」节点。"
+                {agentCore
+                  ? `任务整体交给 agent-core 容器里的 ${AGENT_ENGINE_LABELS[engineValue]}:自主查询身份/天眼等只读数据后给出结论。无副作用能力,封禁/通知等仍用「工具」+「人工审批」节点。`
                   : "由工作流引擎驱动模型多轮调用下方勾选的工具,权限按发起人模块校验。"}
               </FieldDescription>
             </Field>
@@ -1336,8 +1351,8 @@ function NodeConfig({ node, tools, models, nodeRefs = [], readOnly, onChange, on
                 onChange={(arr) => onChange({ tools: arr })}
               />
               <FieldDescription>
-                {d.engine === "claude"
-                  ? "pi Agent 默认只有只读查询工具；勾选的工具（如 send_appia / add_ticket_comment）会追加进去，外呼、改工单等副作用能力必须在此勾选。"
+                {agentCore
+                  ? `${AGENT_ENGINE_LABELS[engineValue]} 默认只有只读查询工具；勾选的工具（如 send_appia / add_ticket_comment）会追加进去，外呼、改工单等副作用能力必须在此勾选。`
                   : "留空表示不限；勾选后智能体只能调用选中的工具。"}
               </FieldDescription>
             </Field>

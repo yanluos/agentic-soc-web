@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { cardStatic } from "@/lib/styles"
 import { ChatMessage } from "@/modules/assistant/ChatMessage.jsx"
 import { useAgentChat } from "@/modules/assistant/useAgentChat.js"
+import { ENGINES, engineLabel, modelsForEngine } from "@/modules/assistant/chatStore.js"
 
 import { Button } from "@/components/ui/button"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
@@ -48,6 +49,7 @@ const DOCK_DELAY = 1500 // 贴边后静置这么久（无拖拽/点击）才收�
 
 const SLASH_COMMANDS = [
   { cmd: "/model", label: "切换模型" },
+  { cmd: "/engine", label: "切换引擎" },
   { cmd: "/effort", label: "切换思考深度" },
   { cmd: "/plan", label: "进入计划模式" },
   { cmd: "/compact", label: "压缩历史" },
@@ -255,18 +257,18 @@ export function FloatingAi({ onAction }) {
   // The pin is stored server-side on the session, so the workbench picker
   // shows the same choice.
   async function slashModel(arg) {
-    const list = chat.models
+    const list = modelsForEngine(chat.models, chat.sessionEngine)
     if (!arg) {
       const current = chat.sessionModel || ""
       const lines = list.map((m) => `- ${m.name === current ? "**" : ""}${m.name}${m.name === current ? "** (当前)" : ""}${m.is_default ? " · 平台默认" : ""}  \`${m.default_model}\``)
       chat.pushNote(
-        `可用模型：\n${lines.join("\n") || "（注册表为空）"}\n\n当前会话：${current || "跟随默认"}。用 \`/model <名称>\` 切换，\`/model 默认\` 恢复。`,
+        `${engineLabel(chat.sessionEngine)} 引擎可用模型：\n${lines.join("\n") || "（没有该协议的模型）"}\n\n当前会话：${current || "跟随默认"}。用 \`/model <名称>\` 切换，\`/model 默认\` 恢复。`,
       )
       return
     }
     const want = arg === "默认" || arg.toLowerCase() === "default" ? "" : arg
     if (want && !list.some((m) => m.name === want)) {
-      toast.error(`没有名为「${want}」的已启用模型`)
+      toast.error(`没有名为「${want}」、可用于 ${engineLabel(chat.sessionEngine)} 引擎的已启用模型`)
       return
     }
     if (!chat.activeId && !(await createNew())) return
@@ -278,12 +280,38 @@ export function FloatingAi({ onAction }) {
     }
   }
 
+  // /engine            → list the engines + this session's
+  // /engine <name>     → switch the session's agent engine (pi / claude-code / codex)
+  async function slashEngine(arg) {
+    if (!arg) {
+      const cur = chat.sessionEngine || "pi"
+      const lines = ENGINES.map((e) => `- ${e.value === cur ? "**" : ""}${e.value}${e.value === cur ? "** (当前)" : ""} · ${e.hint}`)
+      chat.pushNote(`可用引擎：\n${lines.join("\n")}\n\n用 \`/engine <名称>\` 切换（切换后从新上下文开始）。`)
+      return
+    }
+    const want = ENGINES.find((e) => e.value === arg.toLowerCase() || e.label.toLowerCase() === arg.toLowerCase())
+    if (!want) {
+      toast.error(`没有名为「${arg}」的引擎（可选 pi / claude-code / codex）`)
+      return
+    }
+    if (!chat.activeId && !(await createNew())) return
+    try {
+      await chat.setSessionEngine(want.value)
+      toast.success(`本会话已切换到 ${want.label} 引擎`)
+    } catch {
+      /* toasted by the store */
+    }
+  }
+
   // Returns true when the text was consumed as a command.
   function handleSlash(text) {
     const [cmd, ...rest] = text.split(/\s+/)
     switch (cmd) {
       case "/model":
         slashModel(rest.join(" ").trim())
+        return true
+      case "/engine":
+        slashEngine(rest.join(" ").trim())
         return true
       case "/clear":
         chat.clearMessages()

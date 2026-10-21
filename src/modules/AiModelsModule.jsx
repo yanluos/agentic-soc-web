@@ -1,7 +1,9 @@
 // AI model registry CRUD. The "test" button runs a small probe and reports
 // latency. One shared pool: every enabled model is selectable by both the AI
 // assistant and workflow steps; setting `is_default:true` clears every other
-// default (there is exactly one default for both consumers).
+// default (there is exactly one default for both consumers). `api` is the
+// row's wire protocol: anthropic (builtin loop / pi / Claude Code engines) or
+// openai (Responses API — the Codex engine).
 
 import { useCallback, useEffect, useState } from "react"
 import { Plus, Zap, Pencil } from "lucide-react"
@@ -25,6 +27,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { Switch } from "@/components/ui/switch"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Table,
   TableBody,
@@ -39,6 +42,7 @@ const EMPTY = {
   base_url: "",
   api_key: "",
   default_model: "",
+  api: "anthropic",
   enabled: true,
   is_default: false,
 }
@@ -133,6 +137,9 @@ export function AiModelsModule({ apiClient, setError }) {
                         <div className="flex items-center gap-2">
                           {m.name}
                           {m.is_default ? <Badge>默认</Badge> : null}
+                          {m.api === "openai" ? (
+                            <Badge variant="outline" title="OpenAI Responses 协议，供 Codex 引擎使用">OpenAI</Badge>
+                          ) : null}
                         </div>
                       </TableCell>
                       <TableCell className="max-w-64 truncate font-mono text-xs text-muted-foreground" title={m.base_url || "Anthropic 官方"}>
@@ -257,6 +264,7 @@ function ModelDialog({ open, onOpenChange, target, title, onSubmit }) {
           base_url: target.base_url || "",
           api_key: target.api_key || "",
           default_model: target.default_model || "",
+          api: target.api || "anthropic",
           enabled: !!target.enabled,
           is_default: !!target.is_default,
         })
@@ -332,6 +340,22 @@ function ModelDialog({ open, onOpenChange, target, title, onSubmit }) {
                 required
               />
               <FieldDescription>与 provider 协议一致的模型标识</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel>协议</FieldLabel>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={form.api}
+                onValueChange={(v) => v && setForm((f) => ({ ...f, api: v }))}
+              >
+                <ToggleGroupItem value="anthropic">Anthropic Messages</ToggleGroupItem>
+                <ToggleGroupItem value="openai">OpenAI Responses</ToggleGroupItem>
+              </ToggleGroup>
+              <FieldDescription>
+                Anthropic 协议供 pi / Claude Code 引擎与内置工作流使用；OpenAI Responses 协议供 Codex 引擎使用（Base URL 填网关根地址，自动补 /v1）
+              </FieldDescription>
             </Field>
             <Field orientation="horizontal">
               <Switch

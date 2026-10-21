@@ -36,6 +36,7 @@ export function useAgentChat({ onAction, surface, visible = true } = {}) {
     deleteSession: store.deleteSession,
     renameSession: store.renameSession,
     setSessionModel: store.setSessionModel,
+    setSessionEngine: store.setSessionEngine,
     addFiles: store.addFiles,
     removeAttachment: store.removeAttachment,
     clearMessages: store.clearMessages,

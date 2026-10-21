@@ -45,7 +45,32 @@ const initialState = () => ({
   streamingIds: [], // every session id with a live turn
   attachments: [],
   sessionModel: "", // model pinned on the active session ("" = platform default)
+  sessionEngine: "pi", // agent engine of the active session (pi | claude-code | codex)
 })
+
+// Agent engines run by agent-core. Each needs registry models of one wire
+// protocol (ai_models.api): Codex speaks the OpenAI Responses API, the other
+// two the Anthropic Messages API.
+export const ENGINES = [
+  { value: "pi", label: "pi", hint: "agent-core 内置的 pi 引擎" },
+  { value: "claude-code", label: "Claude Code", hint: "Anthropic Claude Code（需 Anthropic 协议模型）" },
+  { value: "codex", label: "Codex", hint: "OpenAI Codex（需 OpenAI Responses 协议模型）" },
+]
+
+export const engineLabel = (e) => ENGINES.find((x) => x.value === e)?.label || "pi"
+
+// The registry rows an engine can use, and its fallback model (the platform
+// default when its protocol fits, else the first fitting row) — mirrors
+// soc-ai's aimodels.PickForEngine.
+export function modelsForEngine(models, engine) {
+  const want = engine === "codex" ? "openai" : "anthropic"
+  return models.filter((m) => (m.api || "anthropic") === want)
+}
+
+export function defaultModelForEngine(models, engine) {
+  const fit = modelsForEngine(models, engine)
+  return fit.find((m) => m.is_default) || fit[0] || null
+}
 
 let state = initialState()
 const listeners = new Set()
@@ -162,12 +187,11 @@ export function setActiveId(id) {
   const seq = ++loadSeq
   setState({ activeId: id })
   if (!id) {
-    setState({ messages: [], sessionModel: "" })
+    setState({ messages: [], sessionModel: "", sessionEngine: "pi" })
     return
   }
   if (fresh.has(id)) {
     fresh.delete(id)
-    setState({ sessionModel: "" })
     return // createSession already blanked the pane; a live send may be in it
   }
   fetch(`/agent/sessions/${id}`, { headers: authHeaders() })
@@ -177,7 +201,7 @@ export function setActiveId(id) {
       let msgs = s?.displayMessages || s?.messages || []
       const t = turns.get(id)
       if (t) msgs = [...msgs, t.userMsg, t.asstMsg]
-      setState({ messages: msgs, sessionModel: s?.model || "" })
+      setState({ messages: msgs, sessionModel: s?.model || "", sessionEngine: s?.engine || "pi" })
     })
     .catch((err) => {
       if (seq === loadSeq) toast.error(`加载消息失败: ${err.message}`)
@@ -189,7 +213,9 @@ export async function createSession() {
   // no in-flight send can still target it, then publish the promise so
   // sendMessage/addFiles can await it instead of racing it.
   loadSeq++
-  setState({ activeId: null, messages: [], sessionModel: "" })
+  // A new conversation keeps the engine/model picked in the composer; they
+  // ride along on its first turn.
+  setState({ activeId: null, messages: [] })
   const pending = (async () => {
     const resp = await fetch("/agent/sessions", {
       method: "POST",
@@ -249,6 +275,36 @@ export async function setSessionModel(name) {
   } catch (err) {
     setState({ sessionModel: prev })
     toast.error(`切换模型失败: ${err.message}`)
+    throw err
+  }
+}
+
+// Switch the active session's agent engine. The backend drops a pinned model
+// of the other protocol (the reply says which model stays pinned); the next
+// turn on a different engine starts a fresh model-side context.
+export async function setSessionEngine(engine) {
+  const next = engine || "pi"
+  const prev = { sessionEngine: state.sessionEngine, sessionModel: state.sessionModel }
+  const pinned = state.models.find((m) => m.name === state.sessionModel)
+  const keepModel = pinned && modelsForEngine([pinned], next).length > 0
+  setState({ sessionEngine: next, sessionModel: keepModel ? state.sessionModel : "" })
+  const id = state.activeId
+  if (!id) return
+  try {
+    const s = await jsonOrThrow(
+      await fetch(`/agent/sessions/${id}`, {
+        method: "PATCH",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ engine: next }),
+      }),
+    )
+    setState((st) => ({
+      sessionModel: s.model || "",
+      sessions: st.sessions.map((x) => (x.id === id ? { ...x, engine: s.engine, model: s.model || "" } : x)),
+    }))
+  } catch (err) {
+    setState(prev)
+    toast.error(`切换引擎失败: ${err.message}`)
     throw err
   }
 }
@@ -381,6 +437,7 @@ export async function sendMessage(text, { effort } = {}) {
         sessionId,
         effort: effort || undefined,
         model: state.sessionModel || undefined,
+        engine: state.sessionEngine || undefined,
         filePaths,
       }),
       signal,
