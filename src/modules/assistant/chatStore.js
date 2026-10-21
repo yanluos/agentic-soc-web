@@ -152,9 +152,11 @@ export function reset() {
 }
 
 // ── init ──────────────────────────────────────────────────────────────
-export function ensureInit() {
-  if (inited) return
-  inited = true
+// The model registry is edited on the AI 模型 page while this store lives on,
+// so the picker list is re-fetched whenever a chat surface opens or the
+// engine changes — not only once per page load (a model added after the
+// first fetch used to stay invisible until a reload).
+export function refreshModels() {
   fetch("/agent/models", { headers: authHeaders() })
     .then(jsonOrThrow)
     .then((d) => {
@@ -164,8 +166,14 @@ export function ensureInit() {
       })
     })
     .catch(() => {
-      /* picker stays empty — chat still works on the default */
+      /* picker keeps the last list — chat still works on the default */
     })
+}
+
+export function ensureInit() {
+  if (inited) return
+  inited = true
+  refreshModels()
   refreshSessions()
     .then((list) => {
       // Never steal the selection from a session created/picked meanwhile.
@@ -284,6 +292,7 @@ export async function setSessionModel(name) {
 // turn on a different engine starts a fresh model-side context.
 export async function setSessionEngine(engine) {
   const next = engine || "pi"
+  refreshModels()
   const prev = { sessionEngine: state.sessionEngine, sessionModel: state.sessionModel }
   const pinned = state.models.find((m) => m.name === state.sessionModel)
   const keepModel = pinned && modelsForEngine([pinned], next).length > 0

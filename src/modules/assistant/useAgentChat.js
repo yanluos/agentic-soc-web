@@ -19,6 +19,11 @@ export function useAgentChat({ onAction, surface, visible = true } = {}) {
     store.ensureInit()
   }, [])
 
+  // Re-fetch the model registry whenever this surface becomes visible.
+  useEffect(() => {
+    if (visible) store.refreshModels()
+  }, [visible])
+
   useEffect(() => {
     if (onAction) store.setActionHandler(onAction)
   }, [onAction])
