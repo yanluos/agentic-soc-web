@@ -3,10 +3,12 @@
 // assistant and workflow steps; setting `is_default:true` clears every other
 // default (there is exactly one default for both consumers). `api` is the
 // row's wire protocol: anthropic (builtin loop / pi / Claude Code engines) or
-// openai (Responses API — the Codex engine).
+// openai (Responses API — the Codex engine). Rows can also be managed per
+// gateway (AiModelsGatewayDialog): enter a gateway URL + key once and pick
+// from the models it lists; such rows carry `gateway`.
 
 import { useCallback, useEffect, useState } from "react"
-import { Plus, Zap, Pencil } from "lucide-react"
+import { Network, Plus, Settings2, Zap, Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +17,7 @@ import { IconButton } from "@/components/IconButton.jsx"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
 import { Card, CardContent } from "@/components/ui/card"
 import { cardHover } from "@/lib/styles"
+import { GatewayDialog } from "@/modules/AiModelsGatewayDialog.jsx"
 import {
   Dialog,
   DialogContent,
@@ -49,6 +52,9 @@ const EMPTY = {
 
 export function AiModelsModule({ apiClient, setError }) {
   const [models, setModels] = useState([])
+  const [gateways, setGateways] = useState([])
+  // null = closed; {} = new gateway; a gateway summary = manage that one
+  const [gatewayTarget, setGatewayTarget] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editTarget, setEditTarget] = useState(null)
   const [createOpen, setCreateOpen] = useState(false)
@@ -58,8 +64,12 @@ export function AiModelsModule({ apiClient, setError }) {
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const list = await apiClient.get("/api/v1/ai/models")
+      const [list, gws] = await Promise.all([
+        apiClient.get("/api/v1/ai/models"),
+        apiClient.get("/api/v1/ai/models/gateways").catch(() => []),
+      ])
       setModels(Array.isArray(list) ? list : list?.models || [])
+      setGateways(Array.isArray(gws) ? gws : [])
     } catch (err) {
       setError?.(err.message)
     } finally {
@@ -96,11 +106,49 @@ export function AiModelsModule({ apiClient, setError }) {
             AI 助手与工作流共用的 LLM 模型池：启用即两边可选，默认模型对两边同时生效
           </p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus data-icon="inline-start" />
-          新增模型
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setGatewayTarget({})}>
+            <Network data-icon="inline-start" />
+            从网关同步
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus data-icon="inline-start" />
+            新增模型
+          </Button>
+        </div>
       </div>
+
+      {gateways.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {gateways.map((g) => (
+            <Card key={g.name} className={cardHover}>
+              <CardContent className="flex items-center gap-3 py-3">
+                <Network className="size-5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    {g.name}
+                    <Badge variant="secondary">
+                      启用 {g.enabled}/{g.models}
+                    </Badge>
+                  </div>
+                  <div className="truncate font-mono text-xs text-muted-foreground" title={g.base_url}>
+                    {g.base_url}
+                  </div>
+                </div>
+                <IconButton
+                  color="blue"
+                  variant="soft"
+                  size="sm"
+                  onClick={() => setGatewayTarget(g)}
+                  aria-label={`管理网关 ${g.name}`}
+                >
+                  <Settings2 />
+                </IconButton>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       <Card className={cardHover}>
         <CardContent className="p-0">
@@ -143,6 +191,11 @@ export function AiModelsModule({ apiClient, setError }) {
                         </div>
                       </TableCell>
                       <TableCell className="max-w-64 truncate font-mono text-xs text-muted-foreground" title={m.base_url || "Anthropic 官方"}>
+                        {m.gateway ? (
+                          <Badge variant="outline" className="mr-2 font-sans" title="由网关同步管理">
+                            {m.gateway}
+                          </Badge>
+                        ) : null}
                         {m.base_url || "Anthropic 官方"}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
@@ -214,6 +267,14 @@ export function AiModelsModule({ apiClient, setError }) {
           </Table>
         </CardContent>
       </Card>
+
+      <GatewayDialog
+        open={!!gatewayTarget}
+        gateway={gatewayTarget?.name ? gatewayTarget : null}
+        onOpenChange={(o) => !o && setGatewayTarget(null)}
+        apiClient={apiClient}
+        onSynced={reload}
+      />
 
       <ModelDialog
         open={createOpen}
