@@ -76,6 +76,22 @@ export function qs(params) {
   return s ? `?${s}` : ""
 }
 
+// qsMulti: like qs but an array value becomes repeated keys (the backend ORs
+// repeated list filters: ?source=a&source=b).
+export function qsMulti(params) {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === "") continue
+    if (Array.isArray(v)) {
+      for (const x of v) if (x !== undefined && x !== null) sp.append(k, String(x))
+      continue
+    }
+    sp.set(k, String(v))
+  }
+  const s = sp.toString()
+  return s ? `?${s}` : ""
+}
+
 export function prettyFields(s) {
   if (!s || s === "{}") return ""
   try {

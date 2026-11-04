@@ -18,7 +18,15 @@ import { ConfirmDeleteButton, IconButton, TopBarPortal, cardHover } from "@/plat
 
 import { fmtAgo, fmtNum } from "./lib.js"
 
-const EMPTY = { ip: "", name: "", type: "其他", enabled: true, note: "" }
+const EMPTY = { ip: "", name: "", type: "其他", enabled: true, note: "", retention_days: "" }
+
+// retention_days travels as a number (0 = follow the global setting); the
+// dialog keeps "" for "follow global" so the field can be cleared.
+function toPayload(e) {
+  const { id, retention_days, ...rest } = e
+  const n = retention_days === "" || retention_days == null ? 0 : Number(retention_days)
+  return { ...rest, retention_days: Number.isFinite(n) && n > 0 ? Math.round(n) : 0 }
+}
 
 export function SourcesTab({ api, setError }) {
   const [data, setData] = useState(null)
@@ -44,16 +52,17 @@ export function SourcesTab({ api, setError }) {
   const types = data?.types || ["其他"]
   const sources = data?.sources || []
   const unreg = data?.unregistered || []
+  const globalDays = data?.global_retention_days
+  const maxDays = data?.max_retention_days || 3650
 
   async function save() {
     setSaving(true)
     try {
       if (editing.id) {
-        const { id, ...rest } = editing
-        await api.patch(`/sources/${id}`, rest)
+        await api.patch(`/sources/${editing.id}`, toPayload(editing))
         toast.success("来源已更新")
       } else {
-        await api.post("/sources", editing)
+        await api.post("/sources", toPayload(editing))
         toast.success("来源已登记")
       }
       setEditing(null)
@@ -97,7 +106,10 @@ export function SourcesTab({ api, setError }) {
 
       <Card className={cardHover}>
         <CardHeader>
-          <CardTitle className="text-sm">已登记来源 ({sources.length})</CardTitle>
+          <CardTitle className="flex items-center justify-between text-sm">
+            <span>已登记来源 ({sources.length})</span>
+            <span className="text-xs font-normal text-muted-foreground">全局保留 {globalDays ?? "-"} 天（插件设置 retention_days）；来源可单独设置</span>
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {sources.length === 0 ? (
@@ -117,6 +129,7 @@ export function SourcesTab({ api, setError }) {
                   <TableHead>名称</TableHead>
                   <TableHead>IP</TableHead>
                   <TableHead>类型</TableHead>
+                  <TableHead>保留</TableHead>
                   <TableHead>最近收到</TableHead>
                   <TableHead className="text-right">24h 条数</TableHead>
                   <TableHead>启用</TableHead>
@@ -139,6 +152,15 @@ export function SourcesTab({ api, setError }) {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{s.ip}</TableCell>
                     <TableCell className="text-xs">{s.type}</TableCell>
+                    <TableCell className="text-xs">
+                      {s.retention_days > 0 ? (
+                        <Badge variant={s.retention_days > (globalDays || 0) ? "secondary" : "outline"} className="text-[10px]">
+                          {s.retention_days} 天
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">全局 {globalDays ?? "-"} 天</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{fmtAgo(s.last_seen)}</TableCell>
                     <TableCell className="text-right font-mono text-xs">{fmtNum(s.count_24h)}</TableCell>
                     <TableCell>
@@ -146,7 +168,7 @@ export function SourcesTab({ api, setError }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <IconButton color="blue" variant="soft" size="xs" aria-label="编辑" onClick={() => setEditing({ id: s.id, ip: s.ip, name: s.name, type: s.type, enabled: !!s.enabled, note: s.note || "" })}>
+                        <IconButton color="blue" variant="soft" size="xs" aria-label="编辑" onClick={() => setEditing({ id: s.id, ip: s.ip, name: s.name, type: s.type, enabled: !!s.enabled, note: s.note || "", retention_days: s.retention_days > 0 ? String(s.retention_days) : "" })}>
                           <Pencil />
                         </IconButton>
                         <ConfirmDeleteButton size="xs" onConfirm={() => remove(s)} />
@@ -241,6 +263,21 @@ export function SourcesTab({ api, setError }) {
                 <FieldLabel htmlFor="src-enabled">启用</FieldLabel>
                 <Switch id="src-enabled" checked={editing.enabled} onCheckedChange={(v) => setEditing({ ...editing, enabled: v })} />
                 <FieldDescription>停用后视为未登记来源，按未登记策略处理。</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="src-retain">保留天数</FieldLabel>
+                <Input
+                  id="src-retain"
+                  type="number"
+                  min={0}
+                  max={maxDays}
+                  value={editing.retention_days}
+                  onChange={(e) => setEditing({ ...editing, retention_days: e.target.value })}
+                  placeholder={`留空 = 跟随全局 ${globalDays ?? ""} 天`}
+                />
+                <FieldDescription>
+                  只对该来源的日志生效。短于全局：到期后按天清理该来源的行；长于全局：日分区会保留到该天数（其他来源到期的行逐日清理）。
+                </FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="src-note">备注</FieldLabel>

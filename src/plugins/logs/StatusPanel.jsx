@@ -1,35 +1,39 @@
-import { useCallback, useEffect, useState } from "react"
-import { RefreshCw, Activity, Database, HardDrive, Radio, HeartPulse } from "lucide-react"
+// 运行状态 — the logs plugin's operational panel on the 插件管理 page
+// (declared in remote-entry.jsx `panels`): receive counters, queue, listeners,
+// retention outcome + day partitions, and a「立即执行保留策略」button. Health
+// items are NOT repeated here — the plugin page's own 健康 tab shows them.
+//
+// Remote bundle: the host passes apiClient; usePluginApi would read a context
+// nobody provides, so the prefixed client is built here.
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { RefreshCw, Activity, Database, HardDrive, Radio, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { TopBarPortal, cardHover } from "@/platform"
+import { cardHover, prefixedApi } from "@/platform"
 
 import { fmtAgo, fmtBytes, fmtNum, fmtTs } from "./lib.js"
 
-export function StatusTab({ api, apiClient, setError }) {
+export function StatusPanel({ apiClient, setError }) {
+  const api = useMemo(() => prefixedApi(apiClient, "logs"), [apiClient])
   const [status, setStatus] = useState(null)
-  const [health, setHealth] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [running, setRunning] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [s, h] = await Promise.all([
-        api.get("/status"),
-        apiClient.get("/api/v1/health/checks?ids=logs").catch(() => null),
-      ])
-      setStatus(s)
-      setHealth(h)
+      setStatus(await api.get("/status"))
     } catch (err) {
       setError?.(err.message || "读取状态失败")
     } finally {
       setLoading(false)
     }
-  }, [api, apiClient, setError])
+  }, [api, setError])
 
   useEffect(() => {
     load()
@@ -37,26 +41,45 @@ export function StatusTab({ api, apiClient, setError }) {
     return () => clearInterval(t)
   }, [load])
 
+  async function runRetention() {
+    setRunning(true)
+    try {
+      const r = await api.post("/retention/run", {})
+      const n = (r?.dropped?.length || 0) + (r?.deleted?.length || 0)
+      toast.success(n ? `保留策略已执行：删除分区 ${r.dropped.length} 个，按来源清理 ${r.deleted?.length || 0} 批` : "保留策略已执行，没有需要清理的数据")
+      load()
+    } catch (err) {
+      toast.error(err.message || "执行失败")
+    } finally {
+      setRunning(false)
+    }
+  }
+
   const m = status?.metrics || {}
   const q = status?.queue || {}
   const r = status?.retention || {}
   const ls = status?.listeners || {}
-  const checks = health?.checks || health?.results || []
-  const items = Array.isArray(checks) ? checks.flatMap((c) => c.items || []) : []
 
   return (
     <div className="flex flex-col gap-4">
-      <TopBarPortal>
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground">
+          log-service v{status?.version || "-"} · 运行 {status?.uptime || "-"} · ClickHouse {status?.clickhouse?.ok ? `v${status.clickhouse.version}` : status?.clickhouse?.error || "-"}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={runRetention} disabled={running || !status?.clickhouse?.ok}>
+            {running ? <Spinner data-icon="inline-start" /> : <Trash2 data-icon="inline-start" />}
+            立即执行保留策略
+          </Button>
           <Button size="sm" variant="outline" onClick={load} disabled={loading}>
             {loading ? <Spinner data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
             刷新
           </Button>
         </div>
-      </TopBarPortal>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={Activity} label="接收速率" value={`${(m.eps_1m ?? 0).toFixed(1)} EPS`} sub={`累计 ${fmtNum(m.received_total)} 条 · 运行 ${status?.uptime || "-"}`} />
+        <Stat icon={Activity} label="接收速率" value={`${(m.eps_1m ?? 0).toFixed(1)} EPS`} sub={`累计 ${fmtNum(m.received_total)} 条`} />
         <Stat
           icon={Database}
           label="已写入"
@@ -75,37 +98,13 @@ export function StatusTab({ api, apiClient, setError }) {
           icon={HardDrive}
           label="磁盘占用"
           value={fmtBytes(r.total_bytes)}
-          sub={`${fmtNum(r.total_rows)} 行 · ${r.partitions?.length ?? 0} 个日分区 · 保留 ${r.retention_days ?? "-"} 天${r.max_disk_gb ? ` · 上限 ${r.max_disk_gb} GB` : ""}`}
+          sub={`${fmtNum(r.total_rows)} 行 · ${r.partitions?.length ?? 0} 个日分区 · 全局保留 ${r.retention_days ?? "-"} 天${
+            r.source_overrides ? ` · ${r.source_overrides} 个来源单独设置(分区最长 ${r.partition_cutoff_days} 天)` : ""
+          }${r.max_disk_gb ? ` · 上限 ${r.max_disk_gb} GB` : ""}`}
         />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className={cardHover}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
-              <HeartPulse className="size-4" /> 健康检查
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {items.length === 0 ? (
-              <p className="text-xs text-muted-foreground">{health ? "无检查项" : "健康检查不可用（需要 health 权限）"}</p>
-            ) : (
-              items.map((it) => (
-                <div key={it.name} className="flex items-start gap-2 text-xs">
-                  <Badge variant={it.status === "ok" ? "success" : it.status === "warn" ? "secondary" : "destructive"} className="mt-0.5 w-12 justify-center text-[10px]">
-                    {it.status}
-                  </Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{it.name}</div>
-                    {it.detail ? <div className="text-muted-foreground">{it.detail}</div> : null}
-                    {it.error ? <div className="break-all text-destructive">{it.error}</div> : null}
-                  </div>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
         <Card className={cardHover}>
           <CardHeader>
             <CardTitle className="text-sm">接收明细</CardTitle>
@@ -121,10 +120,25 @@ export function StatusTab({ api, apiClient, setError }) {
               <Row k="丢弃：超长 / 缓冲满" v={`${fmtNum(m.dropped_oversize)} / ${fmtNum(m.dropped_buffer_full)}`} />
               <Row k="丢弃：写入失败 / 令牌错误" v={`${fmtNum(m.dropped_insert_fail)} / ${fmtNum(m.dropped_bad_token)}`} />
               <Row k="写入批次 成功 / 失败" v={`${fmtNum(m.insert_ok_batches)} / ${fmtNum(m.insert_fail_batches)}`} />
-              <Row k="ClickHouse" v={status?.clickhouse?.ok ? `v${status.clickhouse.version}` : status?.clickhouse?.error || "-"} />
-              <Row k="保留策略上次执行" v={r.last_run ? `${fmtTs(r.last_run)}${r.dropped?.length ? ` · 删除 ${r.dropped.join(", ")}` : ""}` : "尚未执行"} />
-              {r.last_error ? <Row k="保留策略错误" v={r.last_error} /> : null}
               {m.last_insert_error ? <Row k="最近写入错误" v={m.last_insert_error} /> : null}
+            </dl>
+          </CardContent>
+        </Card>
+
+        <Card className={cardHover}>
+          <CardHeader>
+            <CardTitle className="text-sm">保留策略</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <Row k="上次执行" v={r.last_run ? fmtTs(r.last_run) : "尚未执行"} />
+              <Row k="全局保留" v={`${r.retention_days ?? "-"} 天`} />
+              <Row k="分区最长保留" v={`${r.partition_cutoff_days ?? r.retention_days ?? "-"} 天（含来源单独设置）`} />
+              <Row k="来源单独设置" v={`${fmtNum(r.source_overrides)} 个`} />
+              <Row k="磁盘上限" v={r.max_disk_gb ? `${r.max_disk_gb} GB` : "不限"} />
+              <Row k="上次删除分区" v={r.dropped?.length ? r.dropped.join(", ") : "无"} />
+              <Row k="上次按来源清理" v={r.deleted?.length ? r.deleted.join("；") : "无"} />
+              {r.last_error ? <Row k="错误" v={r.last_error} /> : null}
             </dl>
           </CardContent>
         </Card>

@@ -208,10 +208,16 @@ vite.remote.config.js                — 远程插件前端 lib 构建(npm run b
                                        scan 前端不再进主包,运行时由 soc-server 代理
                                        /plugins/scan/assets/* 加载(见根 CLAUDE.md 远程插件)
 src/plugins/logs/                    — 日志服务远程插件前端(remote-entry.jsx + LogsModule
-                                       检索/来源/状态三标签页,usePluginApi("logs") 打
-                                       /api/v1/logs/*;无 index.jsx,不进主包,只经
-                                       build:remote:logs 打包;Tailwind 类因在 src/ 下仍被
-                                       宿主样式表扫描——新增工具类后宿主要重新 build)
+                                       检索/来源/解析规则三标签页 + StatusPanel「运行状态」挂在插件
+                                       管理页 panels;远程包里 usePluginApi 读不到宿主
+                                       context,用 props 的 plugin.api / prefixedApi(apiClient,
+                                       "logs") 打 /api/v1/logs/*;检索页=分面栏(/stats 计数,
+                                       多值 IN;「字段」分面展开键取值,field=k=v)+直方图放大+
+                                       行抽屉 kv 表逐值筛选;RulesTab=规则列表+编辑器+未保存
+                                       规则即测+解析测试框(POST /parse/test);无 index.jsx,不进
+                                       主包,只经 build:remote:logs 打包;Tailwind 类因在 src/
+                                       下仍被宿主样式表扫描——新增工具类后宿主要重新 build,
+                                       开发态要重启 Vite)
 src/plugins/<id>/index.jsx           — 插件前端描述符(极小,eager glob 进主包):
                                        { id, sdk, icon?, modules[], hiddenTables, tableRenderers,
                                          settingsSections[{key,title,desc,hot}], settingsEditors{section: lazy},
