@@ -61,6 +61,8 @@ export const TRIGGER_LABELS = {
   ld_preload: "LD_PRELOAD",
   suid: "SUID",
   kernel_module: "内核模块",
+  sudoers: "sudoers",
+  account: "账户",
   other: "其他",
 }
 
@@ -77,12 +79,46 @@ export const LOCATION_LABELS = {
   programdata: "ProgramData",
   userdir: "用户目录",
   temp: "临时目录",
+  usr_bin: "系统目录(/usr)",
+  usr_local: "/usr/local·/opt",
   other: "其他",
   missing: "文件缺失",
 }
 
 export function locationLabel(l) {
   return LOCATION_LABELS[l] || l || "-"
+}
+
+export const FORENSIC_LABELS = {
+  prefetch: "Prefetch",
+  recent_file: "最近文件",
+  amcache: "Amcache",
+  shimcache: "Shimcache",
+  shell_history: "Shell 历史",
+  system_file: "关键文件变更",
+  history_cleared: "历史被清空",
+}
+
+export function forensicLabel(s) {
+  return FORENSIC_LABELS[s] || s || "-"
+}
+
+// Linux log records carry private event IDs (soc-ir/schema/linux.go).
+export const LINUX_EVENT_LABELS = {
+  1001: "SSH 登录成功",
+  1002: "SSH 登录失败",
+  1003: "sudo 执行",
+  1004: "su 切换",
+  1005: "账户变更",
+  1006: "cron 执行",
+  1007: "登录(wtmp)",
+  1008: "登录失败(btmp)",
+  1009: "内核模块",
+  1011: "日志为空",
+}
+
+export function eventIdLabel(id) {
+  return LINUX_EVENT_LABELS[id] || null
 }
 
 // Views served by GET /cases/{id}/view/{view}; scoreless views default the

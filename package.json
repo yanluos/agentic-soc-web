@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:remote": "vite build --config vite.remote.config.js",
+    "build:remote:logs": "REMOTE_PLUGIN=logs vite build --config vite.remote.config.js",
     "format": "prettier --write \"**/*.{js,jsx}\"",
     "preview": "vite preview"
   },

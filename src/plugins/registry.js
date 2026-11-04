@@ -29,6 +29,12 @@ function normalizeModule(pluginId, m, backend) {
  * the backend's enabled plugin list. `enabled` is the /api/v1/plugins response (array of plugin
  * views); null → plugins unavailable (fail closed unless VITE_PLUGINS_ASSUME_ALL).
  */
+function resolveDescIcon(desc) {
+  const raw = desc.icon || desc.modules?.[0]?.icon || Object.values(desc.icons || {})[0] || null
+  if (typeof raw !== "string") return raw
+  return desc.icons?.[raw] || desc.modules?.find((m) => typeof m.icon !== "string")?.icon || Object.values(desc.icons || {})[0] || null
+}
+
 export function buildRegistry(enabled, remote = {}) {
   const assumeAll = import.meta.env.VITE_PLUGINS_ASSUME_ALL === "1"
   const backendById = new Map((enabled || []).filter((p) => p.enabled).map((p) => [p.id, p]))
@@ -88,7 +94,9 @@ export function buildRegistry(enabled, remote = {}) {
       reg.pluginUI[id] = {
         compiled: true,
         remote: !!compiled.remote,
-        icon: compiled.icon || compiled.modules?.[0]?.icon || Object.values(compiled.icons || {})[0] || null,
+        // remote descriptors name their icon as a string ("ScrollText"): resolve
+        // it through the plugin's own icons map so <Icon /> gets a component.
+        icon: resolveDescIcon(compiled),
         settingsSections: compiled.settingsSections || [],
         settingsEditors: compiled.settingsEditors || {},
         panels: compiled.panels || [],

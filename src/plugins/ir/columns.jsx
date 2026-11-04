@@ -8,6 +8,8 @@ import {
   sigText,
   triggerLabel,
   truncate,
+  forensicLabel,
+  eventIdLabel,
 } from "./lib.js"
 
 const mono = "font-mono text-xs"
@@ -189,7 +191,10 @@ export const COLUMNS = {
       key: "eid",
       label: "EventID",
       className: "tabular-nums",
-      render: (r) => r.event_id,
+      render: (r) => {
+        const l = eventIdLabel(r.event_id)
+        return l ? `${r.event_id} ${l}` : r.event_id
+      },
     },
     {
       key: "desc",
@@ -262,7 +267,7 @@ export const COLUMNS = {
     {
       key: "src",
       label: "来源",
-      render: (r) => <Badge variant="outline">{r.source}</Badge>,
+      render: (r) => <Badge variant="outline">{forensicLabel(r.source)}</Badge>,
     },
     { key: "path", label: "路径", render: (r) => <Path v={r.path} /> },
     { key: "type", label: "类型", render: (r) => r.file_type || "-" },

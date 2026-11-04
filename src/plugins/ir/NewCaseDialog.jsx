@@ -83,6 +83,7 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated }) {
           <TokenReveal
             token={result.token}
             command={result.command}
+            linuxCommand={result.linux_command}
             expires={fmtTime(fields(result.case)["令牌过期"])}
           />
         ) : (

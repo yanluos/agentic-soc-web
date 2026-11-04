@@ -195,15 +195,23 @@ src/platform/                        — 插件唯一可 import 的 SDK 面(barr
                                        actionBus/permissions/pluginApi/PluginBoundary +
                                        settingsUi.jsx(GroupCard/SubSection/SaveButton/
                                        ConfiguredBadge/useSection/SectionJsonEditor)
-vite.remote.config.js                — 远程插件前端 lib 构建(npm run build:remote):把
-                                       src/plugins/scan/remote-entry.jsx 打成自包含 ESM
-                                       输出到 ../fscan-runner/assets/index.js,只把
+vite.remote.config.js                — 远程插件前端 lib 构建(npm run build:remote = scan,
+                                       npm run build:remote:logs = logs;REMOTE_PLUGIN=<id>
+                                       选 src/plugins/<id>/remote-entry.jsx,输出目录按表
+                                       scan→../fscan-runner/assets、logs→../log-service/assets,
+                                       或 REMOTE_OUT_DIR 覆盖):打成自包含 ESM
+                                       输出到 <plugin>/assets/index.js,只把
                                        react/react-dom/react-jsx-runtime/sonner 设为
                                        external(经宿主 index.html import map 共享同一实例),
                                        其余(shadcn ui/@/platform/lucide/GenericTableModule…)
                                        全部打入;不产 CSS(scan 的 tailwind 类已在宿主样式表)。
                                        scan 前端不再进主包,运行时由 soc-server 代理
                                        /plugins/scan/assets/* 加载(见根 CLAUDE.md 远程插件)
+src/plugins/logs/                    — 日志服务远程插件前端(remote-entry.jsx + LogsModule
+                                       检索/来源/状态三标签页,usePluginApi("logs") 打
+                                       /api/v1/logs/*;无 index.jsx,不进主包,只经
+                                       build:remote:logs 打包;Tailwind 类因在 src/ 下仍被
+                                       宿主样式表扫描——新增工具类后宿主要重新 build)
 src/plugins/<id>/index.jsx           — 插件前端描述符(极小,eager glob 进主包):
                                        { id, sdk, icon?, modules[], hiddenTables, tableRenderers,
                                          settingsSections[{key,title,desc,hot}], settingsEditors{section: lazy},

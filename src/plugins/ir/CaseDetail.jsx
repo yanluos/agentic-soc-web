@@ -371,6 +371,7 @@ export function CaseDetail({
             <TokenReveal
               token={tokenResult.token}
               command={tokenResult.command}
+              linuxCommand={tokenResult.linux_command}
               expires={fmtTime(
                 fields(tokenResult.case)["令牌过期"] || tokenResult.expires
               )}

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/input-group"
 import { copyToClipboard } from "@/components/CopyText.jsx"
 
-export function TokenReveal({ token, command, expires }) {
+export function TokenReveal({ token, command, linuxCommand, expires }) {
   async function copy(text, label) {
     if (await copyToClipboard(text)) toast.success(`已复制${label}`)
     else toast.error("复制失败，请手动选择复制")
@@ -84,6 +84,31 @@ export function TokenReveal({ token, command, expires }) {
             采集端只读取证，产出 JSON 后直传平台；也可先 -o
             落盘再在案例页手动上传。
           </FieldDescription>
+        </Field>
+      ) : null}
+      {linuxCommand ? (
+        <Field>
+          <FieldLabel>Linux 主机（root 运行 socir_linux_amd64/arm64）</FieldLabel>
+          <InputGroup>
+            <InputGroupTextarea
+              readOnly
+              rows={2}
+              value={linuxCommand}
+              className="font-mono text-xs"
+              onFocus={(e) => e.target.select()}
+            />
+            <InputGroupAddon align="block-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copy(linuxCommand, "Linux 命令")}
+              >
+                <Copy data-icon="inline-start" />
+                复制命令
+              </Button>
+            </InputGroupAddon>
+          </InputGroup>
         </Field>
       ) : null}
     </FieldGroup>
