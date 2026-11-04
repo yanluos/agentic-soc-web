@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -127,7 +126,7 @@ export function SourcesTab({ api, setError }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>名称</TableHead>
-                  <TableHead>IP</TableHead>
+                  <TableHead>IP / 网段</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead>保留</TableHead>
                   <TableHead>最近收到</TableHead>
@@ -150,7 +149,18 @@ export function SourcesTab({ api, setError }) {
                       </div>
                       {s.note ? <div className="text-[10px] text-muted-foreground">{s.note}</div> : null}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{s.ip}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {(s.ips || [s.ip]).length <= 2 ? (
+                        (s.ips || [s.ip]).join(", ")
+                      ) : (
+                        <span title={(s.ips || []).join(", ")}>
+                          {(s.ips || [])[0]}{" "}
+                          <Badge variant="outline" className="ml-1 text-[10px]">
+                            +{(s.ips || []).length - 1}
+                          </Badge>
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{s.type}</TableCell>
                     <TableCell className="text-xs">
                       {s.retention_days > 0 ? (
@@ -193,7 +203,7 @@ export function SourcesTab({ api, setError }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>IP</TableHead>
+                  <TableHead>IP / 网段</TableHead>
                   <TableHead>hostname</TableHead>
                   <TableHead>归类</TableHead>
                   <TableHead>最近收到</TableHead>
@@ -232,32 +242,35 @@ export function SourcesTab({ api, setError }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editing?.id ? "编辑来源" : "登记来源"}</DialogTitle>
-            <DialogDescription>以发送方 IP 识别；名称用于归档与检索过滤。</DialogDescription>
+            <DialogDescription>以发送方 IP（可多个 / 网段）识别；名称用于归档与检索过滤。</DialogDescription>
           </DialogHeader>
           {editing ? (
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="src-ip">IP</FieldLabel>
-                <Input id="src-ip" value={editing.ip} onChange={(e) => setEditing({ ...editing, ip: e.target.value })} placeholder="10.0.0.1" />
+                <FieldLabel htmlFor="src-ip">IP / 网段</FieldLabel>
+                <Textarea
+                  id="src-ip"
+                  rows={2}
+                  className="font-mono text-xs"
+                  value={editing.ip}
+                  onChange={(e) => setEditing({ ...editing, ip: e.target.value })}
+                  placeholder={"10.0.0.1, 10.0.0.2\n10.1.0.0/24"}
+                />
+                <FieldDescription>一个来源可登记多个发送方 IP 或 CIDR 网段，逗号或换行分隔；同一 IP 不能属于两个来源。</FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="src-name">名称</FieldLabel>
                 <Input id="src-name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="fw-core-01" />
               </Field>
               <Field>
-                <FieldLabel>类型</FieldLabel>
-                <Select value={editing.type} onValueChange={(v) => setEditing({ ...editing, type: v })}>
-                  <SelectTrigger aria-label="类型">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {types.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FieldLabel htmlFor="src-type">类型</FieldLabel>
+                <Input id="src-type" list="src-type-options" value={editing.type} onChange={(e) => setEditing({ ...editing, type: e.target.value })} placeholder="防火墙 / 天眼 / 天擎 / ITDR …" maxLength={32} />
+                <datalist id="src-type-options">
+                  {types.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+                <FieldDescription>自由填写，可从建议里选；解析规则的「来源类型」按这个值精确匹配。</FieldDescription>
               </Field>
               <Field orientation="horizontal">
                 <FieldLabel htmlFor="src-enabled">启用</FieldLabel>

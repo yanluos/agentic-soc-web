@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -193,19 +192,12 @@ export function RulesTab({ api, setError }) {
               aria-label="样例日志"
             />
             <div className="flex flex-col gap-2">
-              <Select value={sampleType || "__none"} onValueChange={(v) => setSampleType(v === "__none" ? "" : v)}>
-                <SelectTrigger size="sm" aria-label="模拟来源类型">
-                  <SelectValue placeholder="模拟来源类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none">来源类型：unknown</SelectItem>
-                  {types.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      来源类型：{t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input className="h-8" list="sample-type-options" value={sampleType} onChange={(e) => setSampleType(e.target.value)} placeholder="模拟来源类型（空 = unknown）" aria-label="模拟来源类型" />
+              <datalist id="sample-type-options">
+                {types.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
               <Button size="sm" variant="outline" onClick={() => runTest(false)} disabled={testing}>
                 {testing ? <Spinner data-icon="inline-start" /> : <FlaskConical data-icon="inline-start" />}
                 用当前生效规则解析
@@ -290,21 +282,13 @@ export function RulesTab({ api, setError }) {
                   <div className="text-xs font-medium text-muted-foreground">匹配条件（都留空 = 所有日志；填了的须同时满足）</div>
                   <div className="grid gap-3 md:grid-cols-3">
                     <Field>
-                      <FieldLabel>来源类型</FieldLabel>
-                      <Select value={form.match.source_type || "__any"} onValueChange={(v) => setForm({ ...form, match: { ...form.match, source_type: v === "__any" ? "" : v } })}>
-                        <SelectTrigger aria-label="来源类型">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__any">任意</SelectItem>
-                          {types.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="unknown">unknown（未登记）</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FieldLabel htmlFor="rule-stype">来源类型</FieldLabel>
+                      <Input id="rule-stype" list="rule-stype-options" value={form.match.source_type} onChange={(e) => setForm({ ...form, match: { ...form.match, source_type: e.target.value } })} placeholder="留空 = 任意；unknown = 未登记" />
+                      <datalist id="rule-stype-options">
+                        {[...types, "unknown"].map((t) => (
+                          <option key={t} value={t} />
+                        ))}
+                      </datalist>
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="rule-app">程序 (app)</FieldLabel>
