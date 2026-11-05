@@ -222,6 +222,7 @@ export function SecIncidentItem({
   const savedAdvice = fields["处置建议"] ?? ""
   const adviceDirty = advice !== null && advice !== savedAdvice
   const savedDetail = fields["详情"] ?? ""
+  const followupLog = String(fields["跟进记录"] || "").trim()
   const detailDirty = detail !== null && detail !== savedDetail
 
   async function patchField(field, value) {
@@ -508,6 +509,28 @@ export function SecIncidentItem({
                 onSave={saveAdvice}
                 editable={!!onPatch}
               />
+              {/* 跟进 agent 的回访时间线（服务端追加,只读）;跟进时间 = 最近一次认领/跟进 */}
+              {followupLog || fields["跟进时间"] ? (
+                <div className="flex min-w-0 flex-col gap-2 border-t pt-3">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h4 className="font-medium text-muted-foreground">
+                      AI 跟进
+                    </h4>
+                    {fields["跟进时间"] ? (
+                      <span className="text-muted-foreground">
+                        最近跟进 {fields["跟进时间"]}
+                      </span>
+                    ) : null}
+                  </div>
+                  {followupLog ? (
+                    <MarkdownBlock label="跟进记录" value={followupLog} />
+                  ) : (
+                    <span className="text-muted-foreground">
+                      已认领，等待首次跟进结果。
+                    </span>
+                  )}
+                </div>
+              ) : null}
             </section>
           </div>
           {apiClient || onDelete ? (
