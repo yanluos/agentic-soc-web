@@ -369,9 +369,13 @@ export function CaseDetail({
           </DialogHeader>
           {tokenResult ? (
             <TokenReveal
+              api={api}
               token={tokenResult.token}
               command={tokenResult.command}
               linuxCommand={tokenResult.linux_command}
+              installLinux={tokenResult.install_command_linux}
+              installWindows={tokenResult.install_command_windows}
+              distAvailable={tokenResult.dist_available}
               expires={fmtTime(
                 fields(tokenResult.case)["令牌过期"] || tokenResult.expires
               )}

@@ -81,9 +81,13 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated }) {
         </DialogHeader>
         {result ? (
           <TokenReveal
+            api={api}
             token={result.token}
             command={result.command}
             linuxCommand={result.linux_command}
+            installLinux={result.install_command_linux}
+            installWindows={result.install_command_windows}
+            distAvailable={result.dist_available}
             expires={fmtTime(fields(result.case)["令牌过期"])}
           />
         ) : (
