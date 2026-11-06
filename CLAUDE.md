@@ -228,7 +228,7 @@ src/plugins/logs/                    — 日志服务远程插件前端(remote-e
 src/plugins/secincident/             — 安全事件表渲染器:SecIncidentItem 紧凑卡片(整卡点击/右端按钮
                                        打开)→ SecIncidentDetail 覆盖式 Dialog(h-[88vh] w-[1200px]:左栏
                                        告警信息/人员信息/研判与处置可编辑,右栏事件时间线);timeline.js
-                                       纯函数拼时间线(跟进记录 `#### 时间 · 跟进 #n|工单|结案|复发（actor）` 解析,标签→节点 kind,
+                                       纯函数拼时间线(跟进记录 `#### 时间 · 跟进 #n|工单|结案|复发|建议|处置|应急|备注（actor）` 解析;左栏「案件纪要（AI）」按小节只读展示,标签→节点 kind,
                                        同一分钟内按写入顺序;ir_cases/bypass_blocks 按「关联事件」挂节点,
                                        复发自 显示在入库节点;
                                        workflow_runs 行归一、跟进↔run#合并、研判结论挂研判运行);

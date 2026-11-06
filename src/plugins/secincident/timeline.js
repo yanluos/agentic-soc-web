@@ -8,7 +8,8 @@
 // run 工作流运行 · verdict AI 研判结论 · followup AI 跟进 · ticket 工单 ·
 // ticketlog 工单状态 · ir 应急响应 · block 封禁 · recurrence 告警复发 ·
 // closure 事件结案. 跟进记录 entries carry a label after the time
-// (`· 跟进 #n` / `· 工单` / `· 结案` / `· 复发`, 2026-11-06 case loop); legacy
+// (`· 跟进 #n` / `· 工单` / `· 结案` / `· 复发`, 2026-11-06 case loop; phase 2
+// adds `· 建议` / `· 处置` / `· 应急` / `· 备注`); legacy
 // entries without one are AI follow-ups.
 // A 跟进 entry whose actor names `run#<id>` folds that run into itself (the
 // entry is the run's conclusion, the run's step traces are its process); the
@@ -28,7 +29,11 @@ const KIND_ORDER = {
   ir: 7,
   block: 8,
   recurrence: 9,
-  closure: 10,
+  proposal: 10,
+  action: 11,
+  irnote: 12,
+  note: 13,
+  closure: 14,
 }
 
 // 跟进记录 entry label → timeline node kind + title.
@@ -36,6 +41,11 @@ const LABEL_KIND = {
   工单: { kind: "ticketlog", title: "工单状态变更" },
   结案: { kind: "closure", title: "事件结案" },
   复发: { kind: "recurrence", title: "告警复发" },
+  // 案件闭环二期：跟进 agent 的阶段建议 → 审批通过后的执行结果 → 主机应急研判结论
+  建议: { kind: "proposal", title: "阶段建议" },
+  处置: { kind: "action", title: "阶段处置" },
+  应急: { kind: "irnote", title: "主机应急研判" },
+  备注: { kind: "note", title: "备注" },
 }
 
 // "YYYY-MM-DD HH:MM[:SS]" / "YYYY/MM/DD HH:MM" are local wall-clock strings
@@ -78,7 +88,7 @@ export function fingerprintOf(fields) {
 }
 
 const ENTRY_HEAD =
-  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*(跟进|工单|结案|复发)(?:\s*#(\d+))?)?\s*(?:[（(](.*?)[）)])?\s*$/
+  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*(跟进|工单|结案|复发|建议|处置|应急|备注)(?:\s*#(\d+))?)?\s*(?:[（(](.*?)[）)])?\s*$/
 
 // parseFollowups splits 跟进记录 on its "#### " entry headers. Each entry:
 // {time, n, actor, runId, body, attention}. Body lines are joined with the

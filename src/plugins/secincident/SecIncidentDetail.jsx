@@ -26,7 +26,10 @@ import {
   Footprints,
   Hash,
   Inbox,
+  Lightbulb,
   MonitorSmartphone,
+  NotebookPen,
+  PlayCircle,
   RefreshCw,
   RotateCcw,
   ShieldOff,
@@ -591,6 +594,7 @@ export function SecIncidentDetailDialog({
               </div>
               <DetailRow label="研判时间" value={fields["研判时间"]} />
               <DetailRow label="最近跟进" value={fields["跟进时间"]} />
+              <CaseMemo text={fields["案件纪要"]} />
               {/* 人工专属：AI 工具不写 详情（2026-11-05），证据在时间线的研判节点里 */}
               <EditableMarkdownBlock
                 label="人工处置 / 分析记录"
@@ -713,6 +717,10 @@ const KIND_META = {
   block: { icon: ShieldOff, dot: "bg-destructive" },
   recurrence: { icon: RotateCcw, dot: "bg-warning" },
   closure: { icon: CheckCircle2, dot: "bg-success" },
+  proposal: { icon: Lightbulb, dot: "bg-warning" },
+  action: { icon: PlayCircle, dot: "bg-success" },
+  irnote: { icon: Siren, dot: "bg-warning" },
+  note: { icon: NotebookPen, dot: "bg-muted-foreground/60" },
 }
 
 function dotFor(node) {
@@ -927,6 +935,10 @@ function NodeBody({ node, fields, apiClient, advice, evidence }) {
     case "ticketlog":
     case "closure":
     case "recurrence":
+    case "proposal":
+    case "action":
+    case "irnote":
+    case "note":
       return node.entry?.body ? (
         <div className="flex min-w-0 flex-col gap-1">
           <div className="rounded-md bg-muted/50 p-2">
@@ -980,6 +992,48 @@ function NodeBody({ node, fields, apiClient, advice, evidence }) {
     default:
       return null
   }
+}
+
+// 案件纪要: the follow-up agent's structured working memory (phase 2 of the
+// case loop) — six one-line sections joined by newlines; read-only here.
+function CaseMemo({ text }) {
+  const [open, setOpen] = useState(true)
+  const lines = String(text || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (!lines.length) return null
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-fit items-center gap-1 rounded-sm text-muted-foreground hover:text-foreground"
+        aria-expanded={open}
+        title="AI 跟进维护的案件工作记忆，每次有新事实时整体重写"
+      >
+        <ChevronRight
+          className={cn("size-3.5 transition-transform", open && "rotate-90")}
+        />
+        案件纪要（AI）
+      </button>
+      {open ? (
+        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-2 break-words">
+          {lines.map((l, i) => {
+            const m = l.match(/^([^：:]{2,8})[：:](.*)$/)
+            return m ? (
+              <div key={i}>
+                <span className="text-muted-foreground">{m[1]}：</span>
+                {m[2]}
+              </div>
+            ) : (
+              <div key={i}>{l}</div>
+            )
+          })}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 // 研判证据: the AI's evidence block written at triage (告警聚合 + 指纹), folded
