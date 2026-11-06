@@ -27,6 +27,7 @@ import {
   Hash,
   Inbox,
   Lightbulb,
+  MessagesSquare,
   MonitorSmartphone,
   NotebookPen,
   PlayCircle,
@@ -62,7 +63,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Spinner } from "@/components/ui/spinner"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { IconButton } from "@/components/IconButton.jsx"
+import { CaseChat, canUseCaseChat } from "./CaseChat.jsx"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
 import { MarkdownText } from "@/components/MarkdownText.jsx"
 import { CopyText } from "@/components/CopyText.jsx"
@@ -291,6 +294,9 @@ export function SecIncidentDetailDialog({
   const [savingDetail, setSavingDetail] = useState(false)
   const [ownerDef, setOwnerDef] = useState(null)
   const [syncing, setSyncing] = useState(false)
+  // 右栏：事件时间线 | 案件会话（三期，需助手 + 安全事件两项权限）
+  const chatAllowed = useMemo(() => canUseCaseChat(), [])
+  const [pane, setPane] = useState("timeline")
 
   const risk = fields["风险等级"]
   const status = fields["处置状态"]
@@ -610,13 +616,44 @@ export function SecIncidentDetailDialog({
             </section>
           </aside>
 
-          <section className="flex min-h-0 flex-col gap-3 overflow-y-auto p-4 text-xs">
+          <section
+            className={cn(
+              "flex min-h-0 flex-col gap-3 p-4 text-xs",
+              pane === "timeline" && "overflow-y-auto"
+            )}
+          >
             <div className="flex h-6 items-center justify-between gap-2">
-              <h4 className="font-medium text-muted-foreground">
-                事件时间线
-                <span className="ml-2 font-normal">{nodes.length} 条</span>
-              </h4>
-              <div className="flex items-center gap-1">
+              {chatAllowed ? (
+                <ToggleGroup
+                  type="single"
+                  size="sm"
+                  variant="outline"
+                  value={pane}
+                  onValueChange={(v) => v && setPane(v)}
+                >
+                  <ToggleGroupItem value="timeline" className="px-2 text-xs">
+                    事件时间线
+                    <span className="font-normal text-muted-foreground">
+                      {nodes.length}
+                    </span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="chat" className="px-2 text-xs">
+                    <MessagesSquare />
+                    案件会话
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              ) : (
+                <h4 className="font-medium text-muted-foreground">
+                  事件时间线
+                  <span className="ml-2 font-normal">{nodes.length} 条</span>
+                </h4>
+              )}
+              <div
+                className={cn(
+                  "flex items-center gap-1",
+                  pane !== "timeline" && "hidden"
+                )}
+              >
                 {runsState.loading ? <Spinner className="size-3" /> : null}
                 {runsState.available ? (
                   <IconButton
@@ -635,41 +672,54 @@ export function SecIncidentDetailDialog({
                 ) : null}
               </div>
             </div>
-            {!runsState.available ? (
-              <p className="text-muted-foreground">
-                当前账号无工作流查看权限，时间线仅显示事件自身记录。
-              </p>
-            ) : null}
-            <Timeline
-              nodes={nodes}
-              fields={fields}
-              apiClient={apiClient}
-              evidence={evidence}
-              advice={{
-                value: savedAdvice,
-                draft: advice,
-                setDraft: setAdvice,
-                dirty: adviceDirty,
-                saving: savingAdvice,
-                onSave: saveAdvice,
-                editable: !!onPatch,
-              }}
-            />
-            {runsState.hasMore ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="self-center"
-                disabled={runsState.loading}
-                onClick={runsState.loadMore}
-              >
-                {runsState.loading ? (
-                  <Spinner data-icon="inline-start" />
+            {pane === "chat" ? (
+              <CaseChat
+                incidentId={id}
+                onWroteBack={() => {
+                  runsState.reload()
+                  ticketsState.reload()
+                  onRefresh?.()
+                }}
+              />
+            ) : (
+              <>
+                {!runsState.available ? (
+                  <p className="text-muted-foreground">
+                    当前账号无工作流查看权限，时间线仅显示事件自身记录。
+                  </p>
                 ) : null}
-                加载更早的运行
-              </Button>
-            ) : null}
+                <Timeline
+                  nodes={nodes}
+                  fields={fields}
+                  apiClient={apiClient}
+                  evidence={evidence}
+                  advice={{
+                    value: savedAdvice,
+                    draft: advice,
+                    setDraft: setAdvice,
+                    dirty: adviceDirty,
+                    saving: savingAdvice,
+                    onSave: saveAdvice,
+                    editable: !!onPatch,
+                  }}
+                />
+                {runsState.hasMore ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="self-center"
+                    disabled={runsState.loading}
+                    onClick={runsState.loadMore}
+                  >
+                    {runsState.loading ? (
+                      <Spinner data-icon="inline-start" />
+                    ) : null}
+                    加载更早的运行
+                  </Button>
+                ) : null}
+              </>
+            )}
           </section>
         </div>
 
