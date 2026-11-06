@@ -495,6 +495,7 @@ function ModuleContent({
         setError={setError}
         renderItem={r.renderItem ? r.renderItem(ctx) : undefined}
         renderCreate={r.renderCreate ? r.renderCreate(ctx) : undefined}
+        renderAside={r.renderAside ? r.renderAside(ctx) : undefined}
         patchPath={r.patchPath}
         deletePath={r.deletePath}
       />

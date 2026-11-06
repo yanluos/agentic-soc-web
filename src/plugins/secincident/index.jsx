@@ -5,6 +5,7 @@ import { lazy } from "react"
 import { ShieldAlert } from "lucide-react"
 
 const SecIncidentItem = lazy(() => import("./SecIncidentItem.jsx").then((m) => ({ default: m.SecIncidentItem })))
+const TodoRail = lazy(() => import("./TodoRail.jsx").then((m) => ({ default: m.TodoRail })))
 const SecIncidentCreateDialog = lazy(() => import("./SecIncidentCreate.jsx").then((m) => ({ default: m.SecIncidentCreateDialog })))
 
 export default {
@@ -18,6 +19,8 @@ export default {
       renderCreate: (ctx) => ({ columns, onCreated }) => (
         <SecIncidentCreateDialog apiClient={ctx.apiClient} setError={ctx.setError} columns={columns} onCreated={onCreated} />
       ),
+      // 左侧可折叠「待办告警」栏:按风险等级(高/中/低/误报)分组的 待跟进/跟进中 事件方卡,高危默认展开
+      renderAside: (ctx) => (props) => <TodoRail apiClient={ctx.apiClient} setError={ctx.setError} {...props} />,
     },
   },
   icon: ShieldAlert,

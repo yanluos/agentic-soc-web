@@ -70,6 +70,12 @@ export function GenericTableModule({
   showEdit = true,
   renderItem,
   renderCreate,
+  // Optional left rail for list mode: renderAside({columns, reloadToken,
+  // patchRecord, refreshRecord, deleteRecord}) renders beside the card list
+  // (安全事件 uses it for the 高危待办 square-card column). The helpers are the
+  // same in-place patch/refresh/delete the cards get, so a rail-opened detail
+  // keeps the main list consistent.
+  renderAside,
   // 工具栏放进顶栏插槽(TopBarPortal;带标签页的模块可提供子插槽,见
   // components/TopBarSlot.jsx)。传 false 则留在列表上方原地渲染。
   toolbarInTopBar = true,
@@ -210,7 +216,12 @@ export function GenericTableModule({
   }, [])
 
   // Infinite scroll: load the next page when the sentinel nears the viewport.
+  // In the two-pane layout (renderAside) the sentinel lives at the end of the
+  // card pane and that pane is the observer root — observing against the
+  // viewport there made the sentinel (then rendered below the fixed-height
+  // panes, always on screen) fire forever and pull every page (2026-11-06).
   const sentinelRef = useRef(null)
+  const listPaneRef = useRef(null)
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
@@ -224,11 +235,11 @@ export function GenericTableModule({
           setPage((p) => p + 1)
         }
       },
-      { rootMargin: "300px" }
+      { root: listPaneRef.current, rootMargin: "300px" }
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [pageInfo.hasNextPage, recordsLoading])
+  }, [pageInfo.hasNextPage, recordsLoading, renderAside])
 
   // Listen for AI filter dispatches.
   useEffect(
@@ -439,67 +450,115 @@ export function GenericTableModule({
     )
   }
 
+  // Infinite-scroll sentinel + status. Two-pane list mode renders it at the
+  // end of the card pane (its scroll root); every other mode below the body.
+  const scrollFooter = (
+    <>
+      <div ref={sentinelRef} className="h-px shrink-0" />
+      <div className="flex shrink-0 items-center justify-center py-1 text-xs text-muted-foreground">
+        {recordsLoading ? (
+          <span className="flex items-center gap-1">
+            <Spinner data-icon="inline-start" /> 加载中…
+          </span>
+        ) : pageInfo.hasNextPage ? (
+          <span>向下滚动加载更多</span>
+        ) : records.length > 0 ? (
+          <span>已全部加载 · 共 {pageInfo.totalRows ?? records.length} 条</span>
+        ) : null}
+      </div>
+    </>
+  )
+
   return (
     <div className="flex flex-col gap-3">
       <TopBarPortal enabled={toolbarInTopBar}>
-      <TableToolbar
-        title={label}
-        total={totalLabel}
-        viewState={viewState}
-        pageSize={pageSize}
-        onPageSizeChange={setPageSize}
-        loading={recordsLoading}
-        onRefresh={handleRefresh}
-        showCreate={showCreate && !renderItem}
-        onCreate={startCreate}
-        extraActions={extraToolbarActions}
-        showFields={!renderItem}
-        createSlot={
-          renderItem && renderCreate
-            ? renderCreate({ columns, onCreated: reloadFromTop })
-            : undefined
-        }
-      />
+        <TableToolbar
+          title={label}
+          total={totalLabel}
+          viewState={viewState}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+          loading={recordsLoading}
+          onRefresh={handleRefresh}
+          showCreate={showCreate && !renderItem}
+          onCreate={startCreate}
+          extraActions={extraToolbarActions}
+          showFields={!renderItem}
+          createSlot={
+            renderItem && renderCreate
+              ? renderCreate({ columns, onCreated: reloadFromTop })
+              : undefined
+          }
+        />
       </TopBarPortal>
       {renderItem ? (
-        <div className="flex flex-col gap-2">
-          {recordsLoading && records.length === 0 ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={`sk-${i}`}
-                className={cn(
-                  "flex flex-col gap-2 rounded-lg bg-card p-3",
-                  cardHover
-                )}
-              >
-                <Skeleton className="h-4 w-1/3" />
-                <Skeleton className="h-3 w-2/3" />
-              </div>
-            ))
-          ) : records.length === 0 ? (
-            <div className={cn("rounded-lg bg-card", cardHover)}>
-              <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
-                <Inbox className="size-8 text-muted-foreground/60" />
-                <div className="font-medium text-foreground">暂无数据</div>
-                <div>调整筛选条件或同步数据后重试</div>
-              </div>
-            </div>
-          ) : (
-            records.map((record) => {
-              const id = getRecordId(record)
-              return renderItem({
-                record,
-                id,
-                fields: getRecordFields(record),
-                columns,
-                onDelete: showDelete ? () => confirmDelete(id) : undefined,
-                onPatch: showEdit
-                  ? (patch) => patchRecord(id, patch)
-                  : undefined,
-                onRefresh: () => refreshRecord(id),
-              })
-            })
+        // With a rail the list mode is a two-pane layout pinned to the
+        // viewport (same height rule as 技能与知识库): the rail and the card list
+        // scroll independently, so paging through one never moves the other.
+        <div
+          className={cn(
+            "flex items-start gap-3",
+            renderAside && "h-[calc(100svh-6rem)]"
           )}
+        >
+          {renderAside ? (
+            <div className="flex h-full min-h-0 thin-scrollbar shrink-0 flex-col overflow-y-auto overscroll-contain pr-1 pb-1">
+              {renderAside({
+                columns,
+                reloadToken,
+                patchRecord,
+                refreshRecord,
+                deleteRecord: showDelete ? confirmDelete : undefined,
+              })}
+            </div>
+          ) : null}
+          <div
+            ref={listPaneRef}
+            className={cn(
+              "flex min-w-0 flex-1 flex-col gap-2",
+              renderAside &&
+                "h-full min-h-0 thin-scrollbar overflow-y-auto overscroll-contain px-1 pb-1"
+            )}
+          >
+            {recordsLoading && records.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={`sk-${i}`}
+                  className={cn(
+                    "flex flex-col gap-2 rounded-lg bg-card p-3",
+                    cardHover
+                  )}
+                >
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              ))
+            ) : records.length === 0 ? (
+              <div className={cn("rounded-lg bg-card", cardHover)}>
+                <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+                  <Inbox className="size-8 text-muted-foreground/60" />
+                  <div className="font-medium text-foreground">暂无数据</div>
+                  <div>调整筛选条件或同步数据后重试</div>
+                </div>
+              </div>
+            ) : (
+              records.map((record) => {
+                const id = getRecordId(record)
+                return renderItem({
+                  record,
+                  id,
+                  fields: getRecordFields(record),
+                  columns,
+                  onDelete: showDelete ? () => confirmDelete(id) : undefined,
+                  onPatch: showEdit
+                    ? (patch) => patchRecord(id, patch)
+                    : undefined,
+                  onRefresh: () => refreshRecord(id),
+                })
+              })
+            )}
+            {renderAside ? scrollFooter : null}
+          </div>
         </div>
       ) : (
         <div className={cn("overflow-hidden rounded-lg bg-card", cardHover)}>
@@ -654,19 +713,7 @@ export function GenericTableModule({
           </Table>
         </div>
       )}
-      {/* Infinite-scroll sentinel + status */}
-      <div ref={sentinelRef} className="h-px" />
-      <div className="flex items-center justify-center py-1 text-xs text-muted-foreground">
-        {recordsLoading ? (
-          <span className="flex items-center gap-1">
-            <Spinner data-icon="inline-start" /> 加载中…
-          </span>
-        ) : pageInfo.hasNextPage ? (
-          <span>向下滚动加载更多</span>
-        ) : records.length > 0 ? (
-          <span>已全部加载 · 共 {pageInfo.totalRows ?? records.length} 条</span>
-        ) : null}
-      </div>
+      {renderItem && renderAside ? null : scrollFooter}
     </div>
   )
 }

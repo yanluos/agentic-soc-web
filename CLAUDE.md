@@ -147,7 +147,14 @@ src/
     │                                  (带 JWT 的裸 fetch,不走 apiClient)。
     │                                  AI 助手 header 的 BookOpen 按钮跳转到本模块
     ├── GenericTableModule.jsx       — meta-driven table primitive; list mode via
-    │                                  renderItem/renderCreate; patchPath /
+    │                                  renderItem/renderCreate(+ renderAside:列表左侧
+    │                                  可选侧栏,拿到 columns/reloadToken/patchRecord/
+    │                                  refreshRecord/deleteRecord,安全事件的待办栏用它,
+    │                                  与卡片共用同一套原地改写;有侧栏时列表模式变成钉在
+    │                                  视口高 h-[calc(100svh-6rem)] 的双栏,侧栏与卡片列
+    │                                  各自 overflow-y-auto 独立滚动;此时无限滚动哨兵必须
+    │                                  在卡片栏末尾且以卡片栏为 IntersectionObserver root
+    │                                  ——放在双栏外会恒在视口内,连续翻页拉光全表把页面拖卡); patchPath /
     │                                  deletePath props 把 PATCH/DELETE 改道到业务
     │                                  端点(工单用)。这不是可选优化:后端给
     │                                  tickets/bypass_blocks/probe_devices 等表加了
@@ -218,8 +225,26 @@ src/plugins/logs/                    — 日志服务远程插件前端(remote-e
                                        主包,只经 build:remote:logs 打包;Tailwind 类因在 src/
                                        下仍被宿主样式表扫描——新增工具类后宿主要重新 build,
                                        开发态要重启 Vite)
+src/plugins/secincident/             — 安全事件表渲染器:SecIncidentItem 紧凑卡片(整卡点击/右端按钮
+                                       打开)→ SecIncidentDetail 覆盖式 Dialog(h-[88vh] w-[1200px]:左栏
+                                       告警信息/人员信息/研判与处置可编辑,右栏事件时间线);timeline.js
+                                       纯函数拼时间线(跟进记录 `#### 时间 · 跟进 #n（actor）` 解析、
+                                       workflow_runs 行归一、跟进↔run#合并、研判结论挂研判运行);
+                                       shared.jsx = StatusPicker/变体色/工单预填/责任人定位工作流查找。
+                                       运行按 (input,like,%"record_id":"<id>"%) 经通用表路由读取(fields
+                                       投影不拉 definition),步骤经 GET /api/v1/workflows/runs/{id};
+                                       lib/workflowEvents 订阅实时刷新。TodoRail = renderAside 挂的待办栏:
+                                       四条独立折叠栏上下纵向叠放(高危/中危/低危/误报待办),折叠态=w-9 窄条
+                                       (下箭头+图标+计数徽标+竖排名称),点开变 w-48 方卡列(该等级下 处置状态
+                                       待跟进|跟进中,待跟进在前、最新在前,一次拉 500 条全部铺开,列高随内容
+                                       撑开,在左栏自己的滚动容器里滚,与右侧列表互不影响),手风琴:一次只开一条;默认全部折叠,
+                                       开着的等级存 localStorage secincident:todo-rail-open;折叠条只拉
+                                       limit=1 取 pageInfo.totalRows 计数,展开才拉方卡;60s 轮询+随主列表
+                                       刷新;方卡点开同一个详情模态框,编辑经宿主 patchRecord 再重查。截图验证时可预置 localStorage
+                                       tableview:secincident = {"sort":"-CreatedAt"} 让最新事件排前
 src/plugins/<id>/index.jsx           — 插件前端描述符(极小,eager glob 进主包):
-                                       { id, sdk, icon?, modules[], hiddenTables, tableRenderers,
+                                       { id, sdk, icon?, modules[], hiddenTables,
+                                         tableRenderers{slug:{renderItem,renderCreate,renderAside?,patchPath?,deletePath?}},
                                          settingsSections[{key,title,desc,hot}], settingsEditors{section: lazy},
                                          panels[{key,label,icon,permission?,component}], sources, icons }
                                        启用与权限以后端 GET /api/v1/plugins 为准(registry.js);

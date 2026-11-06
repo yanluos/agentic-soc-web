@@ -9,10 +9,14 @@ import remarkGfm from "remark-gfm"
 export function MarkdownText({ children }) {
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      // singleTilde off: AI prose writes ranges as 14:49~14:53 / 44000~44004,
+      // which GFM would otherwise render as strikethrough.
+      remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
       components={{
         p: ({ children }) => (
-          <p className="my-1 leading-relaxed first:mt-0 last:mb-0">{children}</p>
+          <p className="my-1 leading-relaxed first:mt-0 last:mb-0">
+            {children}
+          </p>
         ),
         a: ({ children, href }) => (
           <a
