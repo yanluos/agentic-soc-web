@@ -486,7 +486,13 @@ export function GenericTableModule({
           showFields={!renderItem}
           createSlot={
             renderItem && renderCreate
-              ? renderCreate({ columns, onCreated: reloadFromTop })
+              ? renderCreate({
+                  columns,
+                  onCreated: reloadFromTop,
+                  patchRecord,
+                  refreshRecord,
+                  deleteRecord: showDelete ? confirmDelete : undefined,
+                })
               : undefined
           }
         />

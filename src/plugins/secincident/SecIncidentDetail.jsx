@@ -287,6 +287,7 @@ export function SecIncidentDetailDialog({
   onRefresh,
   apiClient,
   setError,
+  initialPane = "timeline",
 }) {
   const [advice, setAdvice] = useState(null) // null = untouched draft
   const [savingAdvice, setSavingAdvice] = useState(false)
@@ -296,7 +297,9 @@ export function SecIncidentDetailDialog({
   const [syncing, setSyncing] = useState(false)
   // 右栏：事件时间线 | 案件会话（三期，需助手 + 安全事件两项权限）
   const chatAllowed = useMemo(() => canUseCaseChat(), [])
-  const [pane, setPane] = useState("timeline")
+  const [pane, setPane] = useState(
+    initialPane === "chat" && chatAllowed ? "chat" : "timeline"
+  )
 
   const risk = fields["风险等级"]
   const status = fields["处置状态"]
@@ -675,6 +678,7 @@ export function SecIncidentDetailDialog({
             {pane === "chat" ? (
               <CaseChat
                 incidentId={id}
+                title={title}
                 onWroteBack={() => {
                   runsState.reload()
                   ticketsState.reload()

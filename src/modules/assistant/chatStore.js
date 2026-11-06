@@ -51,6 +51,13 @@ const initialState = () => ({
 // Agent engines run by agent-core. Each needs registry models of one wire
 // protocol (ai_models.api): Codex speaks the OpenAI Responses API, the other
 // two the Anthropic Messages API.
+export const EFFORTS = [
+  { value: "low", label: "低强度" },
+  { value: "medium", label: "中强度" },
+  { value: "high", label: "高强度" },
+  { value: "max", label: "最大强度" },
+]
+
 export const ENGINES = [
   { value: "pi", label: "pi", hint: "agent-core 内置的 pi 引擎" },
   { value: "claude-code", label: "Claude Code", hint: "Anthropic Claude Code（需 Anthropic 协议模型）" },

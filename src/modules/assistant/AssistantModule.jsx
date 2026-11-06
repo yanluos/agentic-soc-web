@@ -61,17 +61,10 @@ import {
 import { cn } from "@/lib/utils.js"
 
 import { useAgentChat } from "./useAgentChat.js"
-import { ENGINES, defaultModelForEngine, modelsForEngine } from "./chatStore.js"
+import { EFFORTS, ENGINES, defaultModelForEngine, modelsForEngine } from "./chatStore.js"
 import { ChatMessage } from "./ChatMessage.jsx"
 import { pairToolCalls } from "./ToolCallCard.jsx"
 import { toolMeta } from "./toolMeta.js"
-
-const EFFORTS = [
-  { value: "low", label: "低强度" },
-  { value: "medium", label: "中强度" },
-  { value: "high", label: "高强度" },
-  { value: "max", label: "最大强度" },
-]
 
 // Sentinel for the model picker's "follow the global default" row (a Radix
 // Select item cannot carry an empty value).

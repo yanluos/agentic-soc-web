@@ -154,6 +154,18 @@ export function isTerminalRunStatus(s) {
   return s === "succeeded" || s === "failed" || s === "cancelled"
 }
 
+// A follow-up run the quiet gate ended before the model (2026-11-06): it
+// found nothing new and wrote nothing, so it is not a timeline event — a 高
+// incident would otherwise collect six empty nodes an hour.
+export function isQuietFollowupRun(run) {
+  return (
+    run.status === "succeeded" &&
+    !run.llmCalls &&
+    String(run.name || "").includes("跟进") &&
+    !String(run.name || "").includes("调度")
+  )
+}
+
 function isTriageRun(run) {
   const n = String(run.name || "")
   return n.includes("研判") && !n.includes("跟进") && !n.includes("调度")
@@ -250,6 +262,7 @@ export function buildTimeline({
 
   for (const r of runs) {
     if (consumed.has(String(r.id))) continue
+    if (isQuietFollowupRun(r)) continue
     push({
       key: `run-${r.id}`,
       kind: "run",
