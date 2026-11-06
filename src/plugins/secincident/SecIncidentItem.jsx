@@ -10,6 +10,7 @@
 import { useState } from "react"
 import { STATUS_FALLBACK, optionsFor } from "@/platform"
 import {
+  BellRing,
   Bot,
   Building2,
   Clock,
@@ -21,12 +22,15 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Spinner } from "@/components/ui/spinner"
 import { IconButton } from "@/components/IconButton.jsx"
 import { CopyText } from "@/components/CopyText.jsx"
 import { cardHover, cardLifted } from "@/lib/styles"
 import { cn } from "@/lib/utils"
 import { toNocoDateStr } from "@/utils.js"
 
+import { canUseCaseChat } from "./CaseChat.jsx"
+import { useCaseActivity } from "./caseChatStore.js"
 import { SecIncidentDetailDialog } from "./SecIncidentDetail.jsx"
 import { StatusPicker, aiStatusLine, riskVariant } from "./shared.jsx"
 
@@ -41,6 +45,19 @@ export function SecIncidentItem({
   setError,
 }) {
   const [open, setOpen] = useState(false)
+  const [pane, setPane] = useState("timeline")
+  // 案件会话活动：busy = 有 AI 回合在回答（任何值班人员发起），replied = 本人
+  // 发起的回合在弹窗关闭时答完、尚未查看。
+  const [chatAllowed] = useState(canUseCaseChat)
+  const activity = useCaseActivity(id, chatAllowed)
+  const openDetail = () => {
+    setPane("timeline")
+    setOpen(true)
+  }
+  const openChat = () => {
+    setPane("chat")
+    setOpen(true)
+  }
 
   const risk = fields["风险等级"]
   const status = fields["处置状态"]
@@ -66,13 +83,13 @@ export function SecIncidentItem({
       e.target.closest("button, a, [role=option], [data-slot=select-content]")
     )
       return
-    setOpen(true)
+    openDetail()
   }
   function onCardKey(e) {
     if (e.target !== e.currentTarget) return
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault()
-      setOpen(true)
+      openDetail()
     }
   }
 
@@ -174,12 +191,36 @@ export function SecIncidentItem({
               <span className="truncate">{aiLine}</span>
             </span>
           </div>
+          {activity === "busy" ? (
+            <IconButton
+              color="gray"
+              variant="ghost"
+              size="sm"
+              aria-label="AI 会话进行中"
+              title="案件会话：AI 正在回答，点击查看"
+              onClick={openChat}
+            >
+              <Spinner />
+            </IconButton>
+          ) : activity === "replied" ? (
+            <IconButton
+              color="gray"
+              variant="ghost"
+              size="sm"
+              aria-label="AI 已回复"
+              title="案件会话：AI 已回复，点击查看"
+              onClick={openChat}
+              className="text-success"
+            >
+              <BellRing />
+            </IconButton>
+          ) : null}
           <IconButton
             color="gray"
             variant="ghost"
             size="sm"
             aria-label="打开详情"
-            onClick={() => setOpen(true)}
+            onClick={openDetail}
           >
             <Maximize2 />
           </IconButton>
@@ -188,6 +229,7 @@ export function SecIncidentItem({
       {open ? (
         <SecIncidentDetailDialog
           open={open}
+          initialPane={pane}
           onOpenChange={setOpen}
           id={id}
           fields={fields}

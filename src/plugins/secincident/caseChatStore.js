@@ -6,7 +6,7 @@
 // CaseChatNotices 展示。页面刷新后流断了，但回合还在后端跑：发起过的事件记在
 // localStorage（watching），轮询 …/session 的 busy 直到完成再提醒。
 
-import { useSyncExternalStore } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
 import { getStoredToken } from "@/lib/jwt.js"
@@ -346,3 +346,65 @@ function ensurePolling() {
 }
 
 ensurePolling()
+
+// ── per-card activity: which incidents' case sessions are answering now ──
+// GET /agent/cases/active covers every on-call's turns; polled only while
+// some card is mounted (the list is on screen), stopped when none is.
+const ACTIVE_POLL_MS = 5000
+let activeIds = new Set()
+let activeSubs = 0
+let activeTimer = null
+let activeDenied = false // no assistant grant: the cards just stay quiet
+
+async function pollActive() {
+  activeTimer = null
+  if (!activeSubs || activeDenied) return
+  try {
+    const resp = await fetch("/agent/cases/active", { headers: authHeaders() })
+    if (resp.status === 401 || resp.status === 403) {
+      activeDenied = true
+      return
+    }
+    if (resp.ok) {
+      const d = await resp.json()
+      const next = new Set((d.active || []).map(String))
+      const changed =
+        next.size !== activeIds.size || [...next].some((x) => !activeIds.has(x))
+      if (changed) {
+        activeIds = next
+        emit()
+      }
+    }
+  } catch {
+    /* next tick */
+  }
+  if (activeSubs && !activeTimer)
+    activeTimer = setTimeout(pollActive, ACTIVE_POLL_MS)
+}
+
+function activityOf(id) {
+  if (turns.get(id)?.streaming || activeIds.has(id) || watching[id])
+    return "busy"
+  if (notices.some((n) => n.id === id)) return "replied"
+  return ""
+}
+
+// useCaseActivity → "busy" (an AI turn is running on this incident's case
+// session) | "replied" (our turn finished while its dialog was closed) | "".
+export function useCaseActivity(id, enabled = true) {
+  useEffect(() => {
+    if (!enabled) return undefined
+    activeSubs += 1
+    if (activeSubs === 1 && !activeTimer) pollActive()
+    return () => {
+      activeSubs -= 1
+      if (!activeSubs && activeTimer) {
+        clearTimeout(activeTimer)
+        activeTimer = null
+      }
+    }
+  }, [enabled])
+  return useSyncExternalStore(subscribe, () =>
+    enabled ? activityOf(String(id)) : ""
+  )
+}
