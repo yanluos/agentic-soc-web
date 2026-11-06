@@ -5,7 +5,11 @@
 // chronological node list.
 //
 // Node kinds (in tie-break order): occurred 告警发生 · created 事件入库 ·
-// run 工作流运行 · verdict AI 研判结论 · followup AI 跟进 · ticket 工单.
+// run 工作流运行 · verdict AI 研判结论 · followup AI 跟进 · ticket 工单 ·
+// ticketlog 工单状态 · ir 应急响应 · block 封禁 · recurrence 告警复发 ·
+// closure 事件结案. 跟进记录 entries carry a label after the time
+// (`· 跟进 #n` / `· 工单` / `· 结案` / `· 复发`, 2026-11-06 case loop); legacy
+// entries without one are AI follow-ups.
 // A 跟进 entry whose actor names `run#<id>` folds that run into itself (the
 // entry is the run's conclusion, the run's step traces are its process); the
 // 研判结论 node adopts the latest 研判 run that started before 研判时间 the
@@ -20,6 +24,18 @@ const KIND_ORDER = {
   verdict: 3,
   followup: 4,
   ticket: 5,
+  ticketlog: 6,
+  ir: 7,
+  block: 8,
+  recurrence: 9,
+  closure: 10,
+}
+
+// 跟进记录 entry label → timeline node kind + title.
+const LABEL_KIND = {
+  工单: { kind: "ticketlog", title: "工单状态变更" },
+  结案: { kind: "closure", title: "事件结案" },
+  复发: { kind: "recurrence", title: "告警复发" },
 }
 
 // "YYYY-MM-DD HH:MM[:SS]" / "YYYY/MM/DD HH:MM" are local wall-clock strings
@@ -62,7 +78,7 @@ export function fingerprintOf(fields) {
 }
 
 const ENTRY_HEAD =
-  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*跟进\s*#(\d+))?\s*(?:[（(](.*?)[）)])?\s*$/
+  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*(跟进|工单|结案|复发)(?:\s*#(\d+))?)?\s*(?:[（(](.*?)[）)])?\s*$/
 
 // parseFollowups splits 跟进记录 on its "#### " entry headers. Each entry:
 // {time, n, actor, runId, body, attention}. Body lines are joined with the
@@ -76,7 +92,7 @@ export function parseFollowups(text) {
     const head = lines.shift() || ""
     const m = head.match(ENTRY_HEAD)
     if (!m) continue
-    const actor = (m[3] || "").trim()
+    const actor = (m[4] || "").trim()
     const run = actor.match(/run#(\d+)/)
     // Entry bodies are line-oriented (one fact per line); force Markdown hard
     // breaks so rows written before the server added them still stack.
@@ -86,7 +102,8 @@ export function parseFollowups(text) {
       .join("  \n")
     out.push({
       time: m[1],
-      n: m[2] ? Number(m[2]) : null,
+      label: m[2] || "跟进",
+      n: m[3] ? Number(m[3]) : null,
       actor,
       runId: run ? run[1] : "",
       body,
@@ -135,7 +152,13 @@ function isTriageRun(run) {
 // buildTimeline merges the record's own fields, its 跟进记录 entries, the
 // runs dispatched for it and the tickets linked to it. Nodes without a
 // parseable time sort last (kept, flagged timeText "").
-export function buildTimeline({ fields, runs = [], tickets = [] }) {
+export function buildTimeline({
+  fields,
+  runs = [],
+  tickets = [],
+  irCases = [],
+  blocks = [],
+}) {
   const nodes = []
   const push = (n) => {
     const d = parseTime(n.at)
@@ -164,6 +187,18 @@ export function buildTimeline({ fields, runs = [], tickets = [] }) {
 
   const entries = parseFollowups(fields["跟进记录"])
   entries.forEach((e, i) => {
+    const lk = LABEL_KIND[e.label]
+    if (lk) {
+      push({
+        key: `entry-${i}`,
+        kind: lk.kind,
+        at: e.time,
+        title: lk.title,
+        entry: e,
+        seq: i,
+      })
+      return
+    }
     let run = null
     if (e.runId && byId.has(e.runId) && !consumed.has(e.runId)) {
       run = byId.get(e.runId)
@@ -172,6 +207,7 @@ export function buildTimeline({ fields, runs = [], tickets = [] }) {
     push({
       key: `followup-${i}`,
       kind: "followup",
+      seq: i,
       at: e.time,
       title: e.n ? `AI 跟进 #${e.n}` : "AI 跟进",
       entry: e,
@@ -224,10 +260,34 @@ export function buildTimeline({ fields, runs = [], tickets = [] }) {
     })
   }
 
+  for (const c of irCases) {
+    const f = getRecordFields(c)
+    push({
+      key: `ir-${getRecordId(c)}`,
+      kind: "ir",
+      at: f.CreatedAt || "",
+      title: `应急响应案例 #${getRecordId(c)}`,
+      irCase: { id: getRecordId(c), ...f },
+    })
+  }
+
+  for (const b of blocks) {
+    const f = getRecordFields(b)
+    push({
+      key: `block-${getRecordId(b)}`,
+      kind: "block",
+      at: f.CreatedAt || "",
+      title: `探针封禁 ${f["目标"] || ""}`.trim(),
+      block: { id: getRecordId(b), ...f },
+    })
+  }
+
   nodes.sort((a, b) => {
     const ta = a.date ? a.date.getTime() : Number.POSITIVE_INFINITY
     const tb = b.date ? b.date.getTime() : Number.POSITIVE_INFINITY
     if (ta !== tb) return ta - tb
+    // 跟进记录 entries share minute-resolution times: keep their write order
+    if (a.seq != null && b.seq != null) return a.seq - b.seq
     return (KIND_ORDER[a.kind] ?? 9) - (KIND_ORDER[b.kind] ?? 9)
   })
   return nodes

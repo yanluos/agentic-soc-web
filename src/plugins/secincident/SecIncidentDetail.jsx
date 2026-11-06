@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import {
   AlertTriangle,
   Bot,
+  CheckCircle2,
   ChevronRight,
   Clock,
   Crosshair,
@@ -27,6 +28,9 @@ import {
   Inbox,
   MonitorSmartphone,
   RefreshCw,
+  RotateCcw,
+  ShieldOff,
+  Siren,
   Sparkles,
   Ticket,
   User,
@@ -62,6 +66,7 @@ import { CopyText } from "@/components/CopyText.jsx"
 import { TicketCreateDialog } from "@/plugins/tickets/TicketCreate.jsx" // TODO(lint): cross-plugin import (secincident→tickets); acceptable until a shared "create ticket from record" action lands in @/platform
 import { subscribeWorkflowEvents } from "@/lib/workflowEvents.js"
 import { cn } from "@/lib/utils"
+import { getRecordFields } from "@/utils.js"
 
 import {
   OWNER_WORKFLOW_NAME,
@@ -221,6 +226,48 @@ function useIncidentTickets({ apiClient, id, open }) {
   return { tickets, reload: () => setTick((t) => t + 1) }
 }
 
+// Records of another table that point back at this incident (案件闭环):
+// ir_cases.关联事件 = id; bypass_blocks.关联事件 is a comma list, so it is
+// matched with like and filtered exactly here. Missing grant → no nodes.
+function useLinkedRecords({ apiClient, id, open, table, column, list }) {
+  const [rows, setRows] = useState([])
+  useEffect(() => {
+    if (!open || !apiClient || !id) return
+    let cancelled = false
+    const path = buildTablePath(table, {
+      limit: 20,
+      where: list ? `(${column},like,${id})` : `(${column},eq,${id})`,
+      sort: "-Id",
+    })
+    apiClient
+      .get(path)
+      .then((resp) => {
+        if (cancelled) return
+        let records = Array.isArray(resp?.records)
+          ? resp.records
+          : Array.isArray(resp)
+            ? resp
+            : []
+        if (list) {
+          records = records.filter((r) =>
+            String(getRecordFields(r)?.[column] || "")
+              .split(",")
+              .map((x) => x.trim())
+              .includes(String(id))
+          )
+        }
+        setRows(records)
+      })
+      .catch(() => {
+        // no grant / plugin disabled → the timeline just omits these nodes
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open, apiClient, id, table, column, list])
+  return rows
+}
+
 // ── modal ──────────────────────────────────────────────────────────────
 
 export function SecIncidentDetailDialog({
@@ -274,6 +321,21 @@ export function SecIncidentDetailDialog({
     setError,
   })
   const ticketsState = useIncidentTickets({ apiClient, id, open })
+  const irCases = useLinkedRecords({
+    apiClient,
+    id,
+    open,
+    table: "ir_cases",
+    column: "关联事件",
+  })
+  const blocks = useLinkedRecords({
+    apiClient,
+    id,
+    open,
+    table: "bypass_blocks",
+    column: "关联事件",
+    list: true,
+  })
 
   // Live feed: new/removed runs → debounced reload; a known run's update is
   // patched in place, and its terminal state re-reads the record (the agent's
@@ -316,8 +378,10 @@ export function SecIncidentDetailDialog({
         fields,
         runs: runsState.runs,
         tickets: ticketsState.tickets,
+        irCases,
+        blocks,
       }),
-    [fields, runsState.runs, ticketsState.tickets]
+    [fields, runsState.runs, ticketsState.tickets, irCases, blocks]
   )
 
   async function patchField(field, value) {
@@ -644,6 +708,11 @@ const KIND_META = {
   verdict: { icon: Sparkles, dot: "bg-primary" },
   followup: { icon: Footprints, dot: "bg-primary" },
   ticket: { icon: Ticket, dot: "bg-success" },
+  ticketlog: { icon: Ticket, dot: "bg-muted-foreground/60" },
+  ir: { icon: Siren, dot: "bg-warning" },
+  block: { icon: ShieldOff, dot: "bg-destructive" },
+  recurrence: { icon: RotateCcw, dot: "bg-warning" },
+  closure: { icon: CheckCircle2, dot: "bg-success" },
 }
 
 function dotFor(node) {
@@ -736,6 +805,23 @@ function NodeBadges({ node }) {
       </Badge>
     )
   }
+  if (node.kind === "ir" && node.irCase?.["状态"]) {
+    out.push(
+      <Badge key="irstatus" variant="outline">
+        {node.irCase["状态"]}
+      </Badge>
+    )
+  }
+  if (node.kind === "block" && node.block?.["状态"]) {
+    out.push(
+      <Badge
+        key="bstatus"
+        variant={node.block["状态"] === "synced" ? "outline" : "warning"}
+      >
+        {node.block["状态"] === "synced" ? "已下发" : node.block["状态"]}
+      </Badge>
+    )
+  }
   if (node.kind === "ticket" && node.ticket?.["状态"]) {
     out.push(
       <Badge key="tstatus" variant="outline">
@@ -780,10 +866,17 @@ function NodeBody({ node, fields, apiClient, advice, evidence }) {
       )
     case "created":
       return (
-        <div className="text-muted-foreground">
-          {fields["源ID"]
-            ? `由告警源同步入库（源 ID ${fields["源ID"]}）`
-            : "由工作流研判创建"}
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+          <span>
+            {fields["源ID"]
+              ? `由告警源同步入库（源 ID ${fields["源ID"]}）`
+              : "由工作流研判创建"}
+          </span>
+          {fields["复发自"] ? (
+            <CopyText value={String(fields["复发自"])} label="原事件 ID">
+              复发自已结案事件 #{fields["复发自"]}
+            </CopyText>
+          ) : null}
         </div>
       )
     case "verdict":
@@ -829,6 +922,47 @@ function NodeBody({ node, fields, apiClient, advice, evidence }) {
             </div>
           ) : null}
           <RunProcess run={node.run} apiClient={apiClient} />
+        </div>
+      )
+    case "ticketlog":
+    case "closure":
+    case "recurrence":
+      return node.entry?.body ? (
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="rounded-md bg-muted/50 p-2">
+            <MarkdownText>{node.entry.body}</MarkdownText>
+          </div>
+          {node.entry.actor ? (
+            <span className="text-muted-foreground">
+              操作者 {node.entry.actor}
+            </span>
+          ) : null}
+        </div>
+      ) : null
+    case "ir":
+      return (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+          <span className="text-foreground">
+            {node.irCase["名称"] || node.irCase["主机名"]}
+          </span>
+          {node.irCase["风险等级"] ? (
+            <span>风险 {node.irCase["风险等级"]}</span>
+          ) : null}
+          {node.irCase["关联工单"] ? (
+            <span>工单 #{node.irCase["关联工单"]}</span>
+          ) : null}
+        </div>
+      )
+    case "block":
+      return (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+          <span className="text-foreground">{node.block["名称"]}</span>
+          <span>{node.block["类型"]}</span>
+          {node.block["时长秒"] && Number(node.block["时长秒"]) > 0 ? (
+            <span>时长 {node.block["时长秒"]} 秒</span>
+          ) : (
+            <span>永久</span>
+          )}
         </div>
       )
     case "ticket":
