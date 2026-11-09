@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   KeyRound,
   LogOut,
@@ -326,16 +326,35 @@ function ApprovalInbox({ apiClient }) {
   // the clamp and reveals the meta rows (workflow / run id / time).
   const [expanded, setExpanded] = useState({})
 
+  // Refreshes fire from many places (open, poll, SSE per run change, after each
+  // decision) and a long queue makes each one slow, so responses can land out
+  // of order. Only the newest request may write the list, and a run decided
+  // here stays hidden until a refresh STARTED after the decision returns —
+  // otherwise a stale response resurrects the card and the second click gets
+  // "run … is not waiting for approval (status=cancelled)".
+  const loadSeq = useRef(0)
+  const decided = useRef(new Map()) // run_id → loadSeq at decision time
+
   const load = useCallback(async () => {
     if (!apiClient) return
+    const seq = ++loadSeq.current
     setLoading(true)
     try {
       const data = await apiClient.get("/api/v1/workflows/approvals")
-      setItems(Array.isArray(data) ? data : [])
+      if (seq !== loadSeq.current) return
+      const list = Array.isArray(data) ? data : []
+      // A refresh started after the decision returned is authoritative (the
+      // POST only returns once the status is written) — even if the run is
+      // listed again, e.g. paused at a second approval node.
+      for (const [id, at] of decided.current) {
+        if (seq > at) decided.current.delete(id)
+      }
+      setItems(list.filter((x) => !decided.current.has(x.run_id)))
     } catch {
+      if (seq !== loadSeq.current) return
       setItems([]) // no permission / offline → empty inbox, no error toast
     } finally {
-      setLoading(false)
+      if (seq === loadSeq.current) setLoading(false)
     }
   }, [apiClient])
 
@@ -366,16 +385,28 @@ function ApprovalInbox({ apiClient }) {
 
   async function decide(runId, action) {
     setBusy(runId)
+    const drop = () => {
+      decided.current.set(runId, loadSeq.current)
+      setItems((xs) => xs.filter((x) => x.run_id !== runId))
+    }
     try {
       await apiClient.post(
         `/api/v1/workflows/runs/${runId}/${action}`,
         action === "reject" ? { reason: "平台拒绝" } : {},
       )
       toast.success(action === "reject" ? "已拒绝" : "已批准，工作流继续执行")
-      setItems((xs) => xs.filter((x) => x.run_id !== runId))
+      drop()
       load()
     } catch (e) {
-      toast.error(e.message)
+      // Already decided elsewhere (Appia link, another tab/user): not an
+      // error for this user — just drop the stale card.
+      if (/not waiting for approval/.test(e.message || "")) {
+        toast.info("该审批已被处理")
+        drop()
+        load()
+      } else {
+        toast.error(e.message)
+      }
     } finally {
       setBusy(null)
     }
