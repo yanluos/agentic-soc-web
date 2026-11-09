@@ -1,5 +1,10 @@
 // NewCaseDialog — POST /cases, then swap to the one-time token reveal.
-import { useState } from "react"
+// With `ticket` ({id, title}) it is the 工单「发起应急响应」entry (2026-11-09:
+// host IR starts from a ticket, not from a 安全事件): the case is linked to the
+// ticket (关联工单; the server also copies the ticket's 安全事件 into 关联事件
+// and notes the start on the ticket), and ir-triage writes its verdict back
+// onto that ticket instead of opening a new one.
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -23,12 +28,19 @@ import { Spinner } from "@/components/ui/spinner"
 import { TokenReveal } from "./TokenReveal.jsx"
 import { errMsg, fields, fmtTime } from "./lib.js"
 
-export function NewCaseDialog({ api, open, onOpenChange, onCreated }) {
+export function NewCaseDialog({ api, open, onOpenChange, onCreated, ticket }) {
   const [name, setName] = useState("")
   const [host, setHost] = useState("")
   const [note, setNote] = useState("")
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState(null)
+
+  // Pre-fill the case name from the ticket each time the dialog opens.
+  useEffect(() => {
+    if (open && ticket && !result) {
+      setName((n) => n || `工单 #${ticket.id}：${ticket.title || ""}`.slice(0, 80))
+    }
+  }, [open, ticket, result])
 
   function reset() {
     setName("")
@@ -49,6 +61,7 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated }) {
         名称: name.trim() || host.trim(),
         主机名: host.trim(),
         备注: note.trim(),
+        ...(ticket ? { ticket_id: String(ticket.id) } : {}),
       })
       setResult(r)
       onCreated?.(r?.case || r)
@@ -71,12 +84,18 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated }) {
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
-            {result ? "案例已创建 · 采集令牌" : "新建应急案例"}
+            {result
+              ? "案例已创建 · 采集令牌"
+              : ticket
+                ? `工单 #${ticket.id} · 发起应急响应`
+                : "新建应急案例"}
           </DialogTitle>
           <DialogDescription>
             {result
               ? "把令牌交给现场人员，在受害主机上运行采集端直传；或稍后在案例页手动上传采集包。"
-              : "先建案例拿到一次性采集令牌，再到受害主机上运行 socir 采集并上传。"}
+              : ticket
+                ? "为这张工单建应急案例并生成一次性采集令牌；采集包上传后自动研判，结论记回本工单。"
+                : "先建案例拿到一次性采集令牌，再到受害主机上运行 socir 采集并上传。"}
           </DialogDescription>
         </DialogHeader>
         {result ? (

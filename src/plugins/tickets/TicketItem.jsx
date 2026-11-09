@@ -23,6 +23,7 @@ import {
   User,
   UserRoundPen,
   Hash,
+  Siren,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +46,22 @@ import { cn } from "@/lib/utils"
 import { toNocoDateStr } from "@/utils.js"
 import { Input } from "@/components/ui/input"
 import { CopyText } from "@/components/CopyText.jsx"
-import { DetailRow, MarkdownBlock, QuickSelect, optionsFor } from "@/platform"
+import {
+  DetailRow,
+  MarkdownBlock,
+  QuickSelect,
+  optionsFor,
+  hasModule,
+  usePluginApi,
+} from "@/platform"
+import { decodeToken, getStoredToken } from "@/lib/jwt.js"
+import { NewCaseDialog } from "../ir/NewCaseDialog.jsx"
+
+// 主机应急响应的入口在工单上(2026-11-09):值班确认需要上机取证后,在工单里
+// 「发起应急响应」建 ir 案例(关联工单=本工单),研判结论由 ir-triage 记回本工单。
+function canStartIR() {
+  return hasModule(decodeToken(getStoredToken()), "ir")
+}
 
 // Fallbacks when the /meta columns don't carry select options — mirror the
 // backend enums (soc-server internal/tickets). Shared with TicketCreate.jsx.
@@ -162,8 +178,18 @@ function parseTimeline(v) {
   }
 }
 
-export function TicketItem({ id, fields, columns, onDelete, onPatch }) {
+export function TicketItem({
+  id,
+  fields,
+  columns,
+  onDelete,
+  onPatch,
+  onRefresh,
+}) {
   const [open, setOpen] = useState(false)
+  const [irOpen, setIrOpen] = useState(false)
+  const [irAllowed] = useState(canStartIR)
+  const irApi = usePluginApi("ir")
   const [descOpen, setDescOpen] = useState(false) // 描述编辑模态框
   const [desc, setDesc] = useState(null) // null = untouched draft
   const [note, setNote] = useState("")
@@ -429,14 +455,26 @@ export function TicketItem({ id, fields, columns, onDelete, onPatch }) {
             <section className="flex min-w-0 flex-col gap-2">
               <div className="flex items-center justify-between gap-2">
                 <h4 className="font-medium text-muted-foreground">处理记录</h4>
-                {onDelete ? (
-                  <ConfirmDeleteButton
-                    variant="soft"
-                    size="sm"
-                    label="删除工单"
-                    onConfirm={onDelete}
-                  />
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {irAllowed && irApi && status !== "已关闭" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIrOpen(true)}
+                    >
+                      <Siren data-icon="inline-start" />
+                      发起应急响应
+                    </Button>
+                  ) : null}
+                  {onDelete ? (
+                    <ConfirmDeleteButton
+                      variant="soft"
+                      size="sm"
+                      label="删除工单"
+                      onConfirm={onDelete}
+                    />
+                  ) : null}
+                </div>
               </div>
               {timeline.length === 0 ? (
                 <span className="text-muted-foreground">暂无处理记录。</span>
@@ -511,6 +549,15 @@ export function TicketItem({ id, fields, columns, onDelete, onPatch }) {
           </div>
         </CollapsibleContent>
       </div>
+      {irAllowed && irApi ? (
+        <NewCaseDialog
+          api={irApi}
+          open={irOpen}
+          onOpenChange={setIrOpen}
+          ticket={{ id, title }}
+          onCreated={() => onRefresh?.()}
+        />
+      ) : null}
       <Dialog
         open={descOpen}
         onOpenChange={(o) => {
