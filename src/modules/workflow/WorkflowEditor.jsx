@@ -583,6 +583,7 @@ function toRF(graph) {
       appiaCompany: n.appia_company || "",
       appiaRoomId: n.appia_room_id || "",
       outcome: n.outcome || "",
+      dedupKey: n.dedup_key || "",
       condition: n.condition || "",
       text: n.text || "",
     },
@@ -651,6 +652,9 @@ function toGraph(meta, rfNodes, rfEdges) {
         if (d.appiaCompany) out.appia_company = d.appiaCompany
         if (d.appiaRoomId) out.appia_room_id = d.appiaRoomId
         if (d.outcome) out.outcome = d.outcome
+        // Cross-run dedup of identical pending approvals (one card per block
+        // object) — must round-trip or an editor save re-enables duplicates.
+        if (d.dedupKey) out.dedup_key = d.dedupKey
       }
       if (d.kind === "condition") out.condition = d.condition
       if (d.kind === "note") out.text = d.text || ""
@@ -776,7 +780,7 @@ function EditorInner({ graph, meta, tools, models, run, onSave, onExit, onEdit, 
         id,
         type: "wf",
         position: { x: 80 + ns.length * 24, y: 80 + ns.length * 24 },
-        data: { kind, label, tool: presetTool, prompt: "", input: "", model: "", tools: [], condition: "", notify: "", notifyChannels: [], appiaCompany: "", appiaRoomId: "", outcome: "", text: "" },
+        data: { kind, label, tool: presetTool, prompt: "", input: "", model: "", tools: [], condition: "", notify: "", notifyChannels: [], appiaCompany: "", appiaRoomId: "", outcome: "", dedupKey: "", text: "" },
       },
     ])
   }
@@ -1526,6 +1530,18 @@ function ApprovalConfig({ d, readOnly, onChange }) {
         />
         <FieldDescription>
           支持 {"{{ steps.<id>.<字段> }}"} / {"{{ input.x }}"} 插值；留空则回执为通用的「已批准 / 已拒绝」。
+        </FieldDescription>
+      </Field>
+      <Field>
+        <FieldLabel>去重键（可选）</FieldLabel>
+        <Input
+          placeholder="如 block:{{ steps.triage.封禁对象 }}"
+          value={d.dedupKey || ""}
+          disabled={readOnly}
+          onChange={(e) => onChange({ dedupKey: e.target.value })}
+        />
+        <FieldDescription>
+          插值后与任何工作流里正在等待审批的同键审批相同时，本次不再发起审批，本节点及其后续跳过。封禁类审批统一用 {"block:<对象>"}。
         </FieldDescription>
       </Field>
     </>
