@@ -7,7 +7,6 @@ import {
   FileText,
   FilePen,
   FolderSearch,
-  ShieldAlert,
   Search,
   Eye,
   Database,

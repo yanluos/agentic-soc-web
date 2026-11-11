@@ -120,16 +120,6 @@ function setTimeOnString(value, time) {
   return dateToString(base, true)
 }
 
-function setDateOnString(value, date) {
-  if (!date) return value
-  const m = TIME_RE.exec(value || "")
-  const hh = m ? m[4] : "00"
-  const mi = m ? m[5] : "00"
-  const next = new Date(date)
-  next.setHours(+hh, +mi, 0, 0)
-  return dateToString(next, true)
-}
-
 // ── DateRangeField — inline range calendar + time rows ──────────────────
 
 export function DateRangeField({ value, onChange }) {

@@ -38,7 +38,7 @@ export function TableToolbar({
   showFields = true,
   createSlot,
 }) {
-  const { filterTree, hidden, sort, setFilterTree, setHidden, setSort } = viewState
+  const { filterTree, hidden, sort, setFilterTree, setSort } = viewState
   // The filter popover edits a local draft; the tree is committed (and the
   // query re-runs) only when the popover closes.
   const [filterOpen, setFilterOpen] = useState(false)

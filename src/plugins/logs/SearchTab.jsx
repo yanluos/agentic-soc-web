@@ -20,7 +20,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Separator } from "@/components/ui/separator"
 import { DateRangePopover, TopBarPortal, cardHover, cn } from "@/platform"
 
-import { RANGE_PRESETS, SEVERITIES, fmtNum, fmtTs, qsMulti, severityLabel, severityVariant } from "./lib.js"
+import { RANGE_PRESETS, fmtNum, fmtTs, qsMulti, severityLabel, severityVariant } from "./lib.js"
 
 const PAGE = 100
 const MAX_OFFSET = 10000

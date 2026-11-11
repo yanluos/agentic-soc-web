@@ -19,10 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/IconButton.jsx"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Card, CardContent } from "@/components/ui/card"
@@ -54,7 +52,6 @@ import {
   buildTableMetaPath,
   buildTablePath,
   buildTableRecordPath,
-  toNocoV3Sort,
 } from "@/api.js"
 
 const DEFAULT_PAGE_SIZE = 20

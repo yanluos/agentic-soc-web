@@ -31,7 +31,6 @@ import {
 import { Separator } from "@/components/ui/separator"
 import {
   addChildToGroup,
-  clauseId,
   deleteNode,
   findOp,
   newClause,

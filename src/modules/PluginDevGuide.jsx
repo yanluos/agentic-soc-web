@@ -1,12 +1,9 @@
 // 插件开发规范 —— shown on the 插件管理 page behind a button (a centered modal Dialog).
 // The canonical spec lives in docs/design/plugin-architecture.md; this is the
 // operator/developer-facing quick reference, kept in sync with it.
-import { useState } from "react"
-import { BookOpen } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -97,20 +94,6 @@ function GuideMarkdown({ children }) {
     >
       {children}
     </ReactMarkdown>
-  )
-}
-
-// PluginDevGuideButton — the self-contained trigger (outline Button + dialog).
-export function PluginDevGuideButton() {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        <BookOpen data-icon="inline-start" />
-        开发规范
-      </Button>
-      <PluginDevGuideDialog open={open} onOpenChange={setOpen} />
-    </>
   )
 }
 

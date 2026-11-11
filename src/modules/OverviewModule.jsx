@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   ShieldAlert,
   GitBranch,
@@ -82,12 +82,6 @@ function cycleLabel(c) {
 function fmtDate(d) {
   const p = (n) => String(n).padStart(2, "0")
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
-
-// Local "YYYY-MM-DD HH:mm:ss" — accepted by the report API's nocoDateStr parser.
-function fmtDateTime(d) {
-  const p = (n) => String(n).padStart(2, "0")
-  return `${fmtDate(d)} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
 // Server-side date window for a cycle on a given date field. CreatedAt is

@@ -2,46 +2,23 @@
 // inline-editable rows, markdown blocks, the compact QuickSelect). Extracted
 // from the 安全事件 card so the tickets / scan / secincident plugins share one
 // implementation via @/platform instead of importing each other.
-import { useEffect, useState } from "react"
-import { Select as SelectPrimitive } from "radix-ui"
-import { toast } from "sonner"
-import {
-  Building2,
-  ChevronDown,
-  Clock,
-  Crosshair,
-  MonitorSmartphone,
-  Pencil,
-  Ticket,
-  Trash2,
-  User,
-  UserRoundSearch,
-} from "lucide-react"
+import { useState } from "react"
+import { Pencil } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { IconButton } from "@/components/IconButton.jsx"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
 import {
   Select,
   SelectContent,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { dropdownCls, VeilSelectItem } from "@/modules/table/veilSelect.jsx"
 import { MarkdownText } from "@/components/MarkdownText.jsx"
-import { cardHover, cardLifted } from "@/lib/styles"
 import { cn } from "@/lib/utils"
-import { toNocoDateStr } from "@/utils.js"
 
 export const RISK_FALLBACK = ["高", "中", "低", "误报"]
 export const STATUS_FALLBACK = [

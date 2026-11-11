@@ -24,24 +24,13 @@ export function autoLayout(nodes, edges, dir = "LR") {
   return pos
 }
 
-// Pure workflow graph layout. No React.
-//
-// `layoutGraph(def)` walks `def.steps` and assigns every step an (x, y)
-// position in a left-to-right graph. `parallel` steps fan their children
-// vertically; sequential steps share a horizontal lane.
-
-const NODE_W = 168
-const NODE_H = 60
-const COL_GAP = 56
-const ROW_GAP = 18
-
 /**
  * Detect the kind of a step. Steps may be plain tool calls
  * (`{ tool: "..." }`), parallel blocks (`{ parallel: [...] }`), or
  * custom kinds (analyze, approval). The shape mirrors what the
  * `soc-ai` workflow engine expects.
  */
-export function stepKind(step) {
+function stepKind(step) {
   if (!step || typeof step !== "object") return "tool"
   if (step.kind) return step.kind
   if (Array.isArray(step.parallel)) return "parallel"
@@ -49,104 +38,6 @@ export function stepKind(step) {
   if (step.type) return step.type
   return "tool"
 }
-
-export function nodeLabel(step, index) {
-  if (!step) return `#${index + 1}`
-  const k = stepKind(step)
-  const inner = step.tool || step.parallel_label || step.label || step.name
-  if (k === "parallel") return `parallel · ${inner || index + 1}`
-  if (k === "analyze") return `analyze · ${inner || index + 1}`
-  if (k === "approval") return `approval · ${inner || index + 1}`
-  return `tool · ${inner || index + 1}`
-}
-
-/**
- * Compute layout.
- * @param {object} def  workflow definition with `{ steps: [...] }`
- * @returns { nodes, edges, width, height, lanes }
- */
-export function layoutGraph(def) {
-  if (!def || !Array.isArray(def.steps)) {
-    return { nodes: [], edges: [], width: 0, height: 0, lanes: 0 }
-  }
-  const nodes = []
-  const edges = []
-  let col = 0
-  let row = 0
-  let maxRow = 0
-
-  function placeNode(step, parentId) {
-    const kind = stepKind(step)
-    const id = step.id || `step-${nodes.length}`
-
-    if (kind === "parallel" && Array.isArray(step.parallel)) {
-      const startRow = row
-      const childIds = []
-      for (const child of step.parallel) {
-        const childId = placeNode(child, id)
-        childIds.push(childId)
-        row += 1
-      }
-      // Roll row back to where the parallel node sits at the same column.
-      const midRow = Math.floor((startRow + row - 1) / 2)
-      nodes.push({
-        id,
-        name: step.name || step.tool || step.label || id,
-        kind,
-        label: nodeLabel(step, nodes.length),
-        col,
-        row: midRow,
-        x: col * (NODE_W + COL_GAP),
-        y: midRow * (NODE_H + ROW_GAP),
-        width: NODE_W,
-        height: NODE_H,
-        children: childIds,
-      })
-      maxRow = Math.max(maxRow, row - 1)
-      if (parentId) {
-        edges.push({ from: parentId, to: id, kind: "parallel" })
-      }
-    } else {
-      const nodeRow = row
-      nodes.push({
-        id,
-        name: step.name || step.tool || step.label || id,
-        kind,
-        label: nodeLabel(step, nodes.length),
-        col,
-        row: nodeRow,
-        x: col * (NODE_W + COL_GAP),
-        y: nodeRow * (NODE_H + ROW_GAP),
-        width: NODE_W,
-        height: NODE_H,
-      })
-      maxRow = Math.max(maxRow, nodeRow)
-      if (parentId) {
-        edges.push({ from: parentId, to: id, kind: "sequential" })
-      }
-    }
-    // After every top-level step, advance the column.
-    if (!parentId) {
-      col += 1
-      row = 0
-    }
-    return id
-  }
-
-  // Connect consecutive top-level steps so the graph shows flow direction.
-  let prevTopId = null
-  for (const step of def.steps) {
-    const id = placeNode(step, null)
-    if (prevTopId) edges.push({ from: prevTopId, to: id, kind: "sequential" })
-    prevTopId = id
-  }
-
-  const width = col * (NODE_W + COL_GAP)
-  const height = (maxRow + 1) * (NODE_H + ROW_GAP)
-  return { nodes, edges, width, height, lanes: maxRow + 1 }
-}
-
-export const WORKFLOW_GRAPH_DIMS = { NODE_W, NODE_H, COL_GAP, ROW_GAP }
 
 /**
  * stepsToGraph converts a linear/`parallel` definition (`def.steps`) into the

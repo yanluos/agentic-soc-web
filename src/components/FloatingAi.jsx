@@ -84,7 +84,6 @@ export function FloatingAi({ onAction }) {
 
   const panelRef = useRef(null)
   const messagesRef = useRef(null)
-  const dragRef = useRef(null)
 
   // Drive enter/leave: on open, mount then scale up next frame; on close,
   // scale the dialog down (toward the ball) then unmount after the transition.

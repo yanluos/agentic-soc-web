@@ -12,7 +12,6 @@ import {
   Play,
   Settings,
   Save,
-  X,
   GitBranch,
   ChevronDown,
   ChevronUp,

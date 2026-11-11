@@ -25,7 +25,6 @@ import {
   ShieldQuestion,
   Plus,
   Save,
-  Play,
   Trash2,
   X,
   Info,
