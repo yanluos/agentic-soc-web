@@ -378,9 +378,15 @@ export function App() {
     [navigateTo, goBack, goForward],
   )
 
+  // The assistant (floating ball, page-state reporting) needs the `assistant`
+  // grant — the backend refuses /agent/* without it.
+  const canAssist = Boolean(
+    currentUser && (currentUser.is_admin || (currentUser.modules || []).includes("assistant")),
+  )
+
   // 500ms debounce: send activeModule + tables.
   useEffect(() => {
-    if (!currentUser) return
+    if (!canAssist) return
     const id = setInterval(() => {
       const payload = {
         activeModule,
@@ -402,7 +408,7 @@ export function App() {
       }
     }, 500)
     return () => clearInterval(id)
-  }, [currentUser, activeModule, canGoBack, canGoForward])
+  }, [canAssist, activeModule, canGoBack, canGoForward])
 
   if (authLoading) {
     return (
@@ -442,7 +448,9 @@ export function App() {
         />
       </PluginContext.Provider>
       {/* Hide the floating ball while the full workbench is open. */}
-      {activeModule !== "assistant" ? <FloatingAi onAction={handleAgentAction} /> : null}
+      {canAssist && activeModule !== "assistant" ? (
+        <FloatingAi onAction={handleAgentAction} />
+      ) : null}
     </AppShell>
   )
 }
