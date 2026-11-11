@@ -62,6 +62,7 @@ export default defineConfig({
       "/api/v1/ai/models": { target: "http://localhost:8081", changeOrigin: true },
       "/api/v1/ai/health": { target: "http://localhost:8081", changeOrigin: true },
       "/api/v1/mcp": { target: "http://localhost:8081", changeOrigin: true },
+      "/api/v1/files": { target: "http://localhost:8081", changeOrigin: true },
       "/agent": { target: "http://localhost:8081", changeOrigin: true, ws: true },
       "/mcp": { target: "http://localhost:8081", changeOrigin: true },
       // soc-server

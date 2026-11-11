@@ -5,6 +5,25 @@
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { Download } from "lucide-react"
+
+// Download links minted by soc-ai's file_share tool (/api/v1/files/d/<token>,
+// relative in chat, absolute in IM). Rendered as a file chip that downloads in
+// place — the response is Content-Disposition: attachment, so no new tab.
+const FILE_LINK = /\/api\/v1\/files\/d\/socf_[0-9a-f]{48}$/
+
+function FileLink({ href, children }) {
+  return (
+    <a
+      href={href}
+      download
+      className="my-0.5 inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 align-middle text-foreground no-underline transition-colors hover:bg-muted"
+    >
+      <Download className="size-3.5 shrink-0 text-primary" />
+      <span className="truncate">{children}</span>
+    </a>
+  )
+}
 
 export function MarkdownText({ children }) {
   return (
@@ -18,16 +37,19 @@ export function MarkdownText({ children }) {
             {children}
           </p>
         ),
-        a: ({ children, href }) => (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary underline underline-offset-2"
-          >
-            {children}
-          </a>
-        ),
+        a: ({ children, href }) =>
+          href && FILE_LINK.test(href) ? (
+            <FileLink href={href}>{children}</FileLink>
+          ) : (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              {children}
+            </a>
+          ),
         code: ({ inline, children, ...rest }) =>
           inline ? (
             <code
