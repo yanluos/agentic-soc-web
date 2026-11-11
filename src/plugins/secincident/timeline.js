@@ -41,6 +41,7 @@ const LABEL_KIND = {
   工单: { kind: "ticketlog", title: "工单状态变更" },
   结案: { kind: "closure", title: "事件结案" },
   复发: { kind: "recurrence", title: "告警复发" },
+  归并: { kind: "recurrence", title: "告警归并" },
   // 案件闭环二期：跟进 agent 的阶段建议 → 审批通过后的执行结果 → 主机应急研判结论
   建议: { kind: "proposal", title: "阶段建议" },
   处置: { kind: "action", title: "阶段处置" },
@@ -88,7 +89,7 @@ export function fingerprintOf(fields) {
 }
 
 const ENTRY_HEAD =
-  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*(跟进|工单|结案|复发|建议|处置|应急|备注)(?:\s*#(\d+))?)?\s*(?:[（(](.*?)[）)])?\s*$/
+  /^#### (\d{4}-\d{2}-\d{2} \d{2}:\d{2})(?:\s*·\s*(跟进|工单|结案|复发|归并|建议|处置|应急|备注)(?:\s*#(\d+))?)?\s*(?:[（(](.*?)[）)])?\s*$/
 
 // parseFollowups splits 跟进记录 on its "#### " entry headers. Each entry:
 // {time, n, actor, runId, body, attention}. Body lines are joined with the
