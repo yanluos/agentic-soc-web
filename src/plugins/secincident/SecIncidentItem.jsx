@@ -10,19 +10,18 @@
 import { useState } from "react"
 import { STATUS_FALLBACK, optionsFor } from "@/platform"
 import {
-  BellRing,
   Bot,
   Building2,
   Clock,
   Crosshair,
   Hash,
   Maximize2,
+  MessageSquareText,
   MonitorSmartphone,
   User,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
-import { Spinner } from "@/components/ui/spinner"
 import { IconButton } from "@/components/IconButton.jsx"
 import { CopyText } from "@/components/CopyText.jsx"
 import { cardHover, cardLifted } from "@/lib/styles"
@@ -33,6 +32,51 @@ import { canUseCaseChat } from "./CaseChat.jsx"
 import { useCaseActivity } from "./caseChatStore.js"
 import { SecIncidentDetailDialog } from "./SecIncidentDetail.jsx"
 import { StatusPicker, aiStatusLine, riskVariant } from "./shared.jsx"
+
+// 卡片右端的案件会话按钮:无会话=灰色 ghost,有会话(含本人回合答完未看)=蓝色,
+// AI 正在回复(任何值班人员发起)=绿色呼吸动画。点击打开详情的「案件会话」页。
+const CHAT_STATES = {
+  busy: {
+    color: "green",
+    variant: "soft",
+    label: "案件会话：AI 正在回复，点击查看",
+  },
+  replied: {
+    color: "blue",
+    variant: "soft",
+    label: "案件会话：AI 已回复，点击查看",
+  },
+  has: {
+    color: "blue",
+    variant: "soft",
+    label: "案件会话：已有对话，点击继续",
+  },
+  "": { color: "gray", variant: "ghost", label: "案件会话：与 AI 讨论此事件" },
+}
+
+function CaseChatButton({ activity, onClick }) {
+  const st = CHAT_STATES[activity] || CHAT_STATES[""]
+  const busy = activity === "busy"
+  return (
+    <IconButton
+      color={st.color}
+      variant={st.variant}
+      size="sm"
+      aria-label={st.label}
+      title={st.label}
+      onClick={onClick}
+      className={cn("relative", busy && "animate-pulse")}
+    >
+      <MessageSquareText />
+      {busy ? (
+        <span className="pointer-events-none absolute -top-0.5 -right-0.5 flex size-2">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-success" />
+        </span>
+      ) : null}
+    </IconButton>
+  )
+}
 
 export function SecIncidentItem({
   id,
@@ -191,39 +235,19 @@ export function SecIncidentItem({
               <span className="truncate">{aiLine}</span>
             </span>
           </div>
-          {activity === "busy" ? (
+          {chatAllowed ? (
+            <CaseChatButton activity={activity} onClick={openChat} />
+          ) : (
             <IconButton
               color="gray"
               variant="ghost"
               size="sm"
-              aria-label="AI 会话进行中"
-              title="案件会话：AI 正在回答，点击查看"
-              onClick={openChat}
+              aria-label="打开详情"
+              onClick={openDetail}
             >
-              <Spinner />
+              <Maximize2 />
             </IconButton>
-          ) : activity === "replied" ? (
-            <IconButton
-              color="gray"
-              variant="ghost"
-              size="sm"
-              aria-label="AI 已回复"
-              title="案件会话：AI 已回复，点击查看"
-              onClick={openChat}
-              className="text-success"
-            >
-              <BellRing />
-            </IconButton>
-          ) : null}
-          <IconButton
-            color="gray"
-            variant="ghost"
-            size="sm"
-            aria-label="打开详情"
-            onClick={openDetail}
-          >
-            <Maximize2 />
-          </IconButton>
+          )}
         </div>
       </div>
       {open ? (

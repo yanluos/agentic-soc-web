@@ -352,9 +352,14 @@ ensurePolling()
 // some card is mounted (the list is on screen), stopped when none is.
 const ACTIVE_POLL_MS = 5000
 let activeIds = new Set()
+let sessionIds = new Set() // incidents with a saved case conversation
 let activeSubs = 0
 let activeTimer = null
 let activeDenied = false // no assistant grant: the cards just stay quiet
+
+function sameSet(a, b) {
+  return a.size === b.size && [...a].every((x) => b.has(x))
+}
 
 async function pollActive() {
   activeTimer = null
@@ -368,10 +373,10 @@ async function pollActive() {
     if (resp.ok) {
       const d = await resp.json()
       const next = new Set((d.active || []).map(String))
-      const changed =
-        next.size !== activeIds.size || [...next].some((x) => !activeIds.has(x))
-      if (changed) {
+      const nextSessions = new Set((d.sessions || []).map(String))
+      if (!sameSet(next, activeIds) || !sameSet(nextSessions, sessionIds)) {
         activeIds = next
+        sessionIds = nextSessions
         emit()
       }
     }
@@ -386,11 +391,13 @@ function activityOf(id) {
   if (turns.get(id)?.streaming || activeIds.has(id) || watching[id])
     return "busy"
   if (notices.some((n) => n.id === id)) return "replied"
+  if (sessionIds.has(id) || turns.get(id)?.messages?.length) return "has"
   return ""
 }
 
 // useCaseActivity → "busy" (an AI turn is running on this incident's case
-// session) | "replied" (our turn finished while its dialog was closed) | "".
+// session) | "replied" (our turn finished while its dialog was closed) |
+// "has" (a saved conversation exists) | "".
 export function useCaseActivity(id, enabled = true) {
   useEffect(() => {
     if (!enabled) return undefined
