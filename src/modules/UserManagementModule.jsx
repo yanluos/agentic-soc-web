@@ -51,6 +51,8 @@ import {
 } from "@/components/ui/input-group"
 import { modules as staticModules } from "@/constants.js"
 import { getStoredToken } from "@/lib/jwt.js"
+import { passwordProblem } from "@/lib/passwordPolicy.js"
+import { PasswordPolicyHint } from "@/components/PasswordPolicyHint.jsx"
 
 // Fallback when the plugin host is unreachable: the core descriptors (only
 // real backend grants — the settings_* UI pages ride on "settings").
@@ -76,6 +78,17 @@ function authHeaders() {
   }
 }
 
+// soc-auth 错误体是 {"error": "..."};取出说明文字,而不是把整段 JSON 显示给用户
+async function errorText(resp, fallback) {
+  const text = await resp.text()
+  try {
+    const parsed = JSON.parse(text)
+    return parsed.error || parsed.message || text
+  } catch {
+    return text || fallback
+  }
+}
+
 async function fetchUsers() {
   const resp = await fetch("/users", { headers: authHeaders() })
   if (!resp.ok) throw new Error(`加载用户失败: ${resp.status}`)
@@ -88,10 +101,7 @@ async function createUser(body) {
     headers: authHeaders(),
     body: JSON.stringify(body),
   })
-  if (!resp.ok) {
-    const text = await resp.text()
-    throw new Error(text || `创建失败: ${resp.status}`)
-  }
+  if (!resp.ok) throw new Error(await errorText(resp, `创建失败: ${resp.status}`))
   return resp.json()
 }
 
@@ -101,10 +111,7 @@ async function updateUser(id, body) {
     headers: authHeaders(),
     body: JSON.stringify(body),
   })
-  if (!resp.ok) {
-    const text = await resp.text()
-    throw new Error(text || `更新失败: ${resp.status}`)
-  }
+  if (!resp.ok) throw new Error(await errorText(resp, `更新失败: ${resp.status}`))
   return resp.json()
 }
 
@@ -314,7 +321,7 @@ export function UserManagementModule({ currentUser, setError }) {
             setCreateOpen(false)
             reload()
           } catch (err) {
-            setError?.(err.message)
+            toast.error(err.message)
           }
         }}
       />
@@ -329,7 +336,7 @@ export function UserManagementModule({ currentUser, setError }) {
             setEditTarget(null)
             reload()
           } catch (err) {
-            setError?.(err.message)
+            toast.error(err.message)
           }
         }}
       />
@@ -458,6 +465,11 @@ function CreateUserDialog({ open, onOpenChange, onSubmit }) {
         <form
           onSubmit={async (e) => {
             e.preventDefault()
+            const policyErr = passwordProblem(password, username)
+            if (policyErr) {
+              toast.error(policyErr)
+              return
+            }
             setSubmitting(true)
             try {
               await onSubmit({
@@ -493,6 +505,7 @@ function CreateUserDialog({ open, onOpenChange, onSubmit }) {
                 required
                 autoComplete="new-password"
               />
+              <PasswordPolicyHint password={password} username={username} />
             </Field>
             <Field orientation="horizontal">
               <Checkbox
@@ -557,6 +570,11 @@ function EditUserDialog({ target, onClose, onSubmit }) {
             e.preventDefault()
             const body = { is_admin: isAdmin, modules: isAdmin ? [] : selected }
             if (password) {
+              const policyErr = passwordProblem(password, target.username || "")
+              if (policyErr) {
+                toast.error(policyErr)
+                return
+              }
               body.password = password
             }
             setSubmitting(true)
@@ -579,6 +597,9 @@ function EditUserDialog({ target, onClose, onSubmit }) {
                 autoComplete="new-password"
                 placeholder="留空则不修改"
               />
+              {password ? (
+                <PasswordPolicyHint password={password} username={target.username || ""} />
+              ) : null}
             </Field>
             <Field orientation="horizontal">
               <Checkbox

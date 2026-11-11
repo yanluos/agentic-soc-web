@@ -37,6 +37,8 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { storeToken } from "@/lib/jwt.js"
 import { useAutofillSync, fieldValue } from "@/hooks/use-autofill-sync.js"
+import { passwordProblem } from "@/lib/passwordPolicy.js"
+import { PasswordPolicyHint } from "@/components/PasswordPolicyHint.jsx"
 
 const LOGIN_MODES = [
   { value: "login", label: "登录" },
@@ -101,6 +103,13 @@ export function LoginOverlay({ onLogin }) {
     if (!uname || !pass) {
       setError("请输入用户名和密码")
       return
+    }
+    if (mode === "register") {
+      const policyErr = passwordProblem(pass, uname)
+      if (policyErr) {
+        setError(policyErr)
+        return
+      }
     }
     if (mode === "register" && pass !== conf) {
       setError("两次输入的密码不一致")
@@ -401,6 +410,9 @@ export function LoginOverlay({ onLogin }) {
                         </InputGroupButton>
                       </InputGroupAddon>
                     </InputGroup>
+                    {mode === "register" ? (
+                      <PasswordPolicyHint password={password} username={username} />
+                    ) : null}
                   </Field>
                   {mode === "register" ? (
                     <>

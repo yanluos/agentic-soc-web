@@ -78,6 +78,8 @@ import { TopBarSlotContext } from "@/components/TopBarSlot.jsx"
 import { moduleGroups, resolveIcon } from "@/constants.js"
 import { useAutofillSync, fieldValue } from "@/hooks/use-autofill-sync.js"
 import { subscribeWorkflowEvents } from "@/lib/workflowEvents.js"
+import { passwordProblem } from "@/lib/passwordPolicy.js"
+import { PasswordPolicyHint } from "@/components/PasswordPolicyHint.jsx"
 
 const GROUP_COLLAPSED_KEY = "sidebar:groupCollapsed"
 const SIDEBAR_WIDTH_KEY = "sidebar:width"
@@ -682,6 +684,15 @@ function ChangePasswordDialog({ open, onOpenChange, username }) {
       setError("请输入当前密码")
       return
     }
+    const policyErr = passwordProblem(newVal, username || "")
+    if (policyErr) {
+      setError(policyErr)
+      return
+    }
+    if (newVal === oldVal) {
+      setError("新密码不能与当前密码相同")
+      return
+    }
     if (newVal !== confirmVal) {
       setError("两次输入的密码不一致")
       return
@@ -775,6 +786,7 @@ function ChangePasswordDialog({ open, onOpenChange, username }) {
                 autoComplete="new-password"
                 required
               />
+              <PasswordPolicyHint password={newPw} username={username || ""} />
             </Field>
             <Field>
               <FieldLabel htmlFor="confirm-pw">确认新密码</FieldLabel>
