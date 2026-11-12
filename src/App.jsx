@@ -20,6 +20,7 @@ import {
 import { DEFAULT_DYNAMIC_TABLE_GROUP } from "@/constants.js"
 import { buildRegistry, compiledPlugins } from "@/plugins/registry.js"
 import { PluginBoundary, PluginContext } from "@/platform"
+import { SilentBoundary } from "@/platform/PluginBoundary.jsx"
 import { GenericTableModule } from "@/modules/GenericTableModule.jsx"
 
 const DEFAULT_MODULE = "overview"
@@ -449,7 +450,9 @@ export function App() {
       </PluginContext.Provider>
       {/* Hide the floating ball while the full workbench is open. */}
       {canAssist && activeModule !== "assistant" ? (
-        <FloatingAi onAction={handleAgentAction} />
+        <SilentBoundary name="FloatingAi">
+          <FloatingAi onAction={handleAgentAction} />
+        </SilentBoundary>
       ) : null}
     </AppShell>
   )

@@ -80,6 +80,7 @@ import { useAutofillSync, fieldValue } from "@/hooks/use-autofill-sync.js"
 import { subscribeWorkflowEvents } from "@/lib/workflowEvents.js"
 import { passwordProblem } from "@/lib/passwordPolicy.js"
 import { PasswordPolicyHint } from "@/components/PasswordPolicyHint.jsx"
+import { SilentBoundary } from "@/platform/PluginBoundary.jsx"
 
 const GROUP_COLLAPSED_KEY = "sidebar:groupCollapsed"
 const SIDEBAR_WIDTH_KEY = "sidebar:width"
@@ -598,7 +599,9 @@ function TopBar({
           gap ≈ 内容卡片的 md:p-6 内衬,与卡片内容左缘对齐。 */}
       <div ref={slotRef} className="flex min-w-0 flex-1 items-center md:pl-4 md:pr-4" />
       <div className="flex shrink-0 items-center gap-2">
-        <ApprovalInbox apiClient={apiClient} />
+        <SilentBoundary name="ApprovalInbox">
+          <ApprovalInbox apiClient={apiClient} />
+        </SilentBoundary>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <IconButton

@@ -52,3 +52,26 @@ export class PluginBoundary extends Component {
     )
   }
 }
+
+// SilentBoundary is for auxiliary widgets that sit OUTSIDE the active module —
+// the floating assistant, the approval bell. If one of them throws while
+// rendering, it disappears (and the error is logged) instead of blanking the
+// whole console; the page the operator is working in stays usable.
+export class SilentBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error) {
+    console.error(`[${this.props.name || "widget"}] crashed and was hidden:`, error)
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children
+  }
+}
