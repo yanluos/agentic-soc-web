@@ -31,6 +31,16 @@ export function clearToken() {
   }
 }
 
+/** Authorization header for a request made as the logged-in user. */
+export function authHeaders() {
+  return { Authorization: `Bearer ${getStoredToken()}` }
+}
+
+/** authHeaders() plus a JSON Content-Type, for requests with a JSON body. */
+export function jsonAuthHeaders() {
+  return { "Content-Type": "application/json", ...authHeaders() }
+}
+
 function base64UrlDecode(input) {
   // Convert base64url → base64 → atob.
   const padded = input.replace(/-/g, "+").replace(/_/g, "/")

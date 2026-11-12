@@ -46,11 +46,10 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { IconButton } from "@/components/IconButton.jsx"
-import { decodeToken, getStoredToken } from "@/lib/jwt.js"
+import { authHeaders, decodeToken, getStoredToken } from "@/lib/jwt.js"
 import { hasModule } from "@/platform/permissions.js"
 import { ChatMessage } from "@/modules/assistant/ChatMessage.jsx"
 import {
-  authHeaders,
   mountCase,
   releaseTurn,
   startTurn,

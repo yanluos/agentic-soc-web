@@ -9,7 +9,7 @@
 import { useEffect, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
-import { getStoredToken } from "@/lib/jwt.js"
+import { authHeaders } from "@/lib/jwt.js"
 
 const WATCH_KEY = "secincident:case-chat-watching"
 const WATCH_TTL_MS = 60 * 60 * 1000 // a turn older than this is not waited for
@@ -55,11 +55,7 @@ function writeWatching(next) {
   }
 }
 
-export function authHeaders() {
-  return { Authorization: `Bearer ${getStoredToken()}` }
-}
-
-function parseSSELine(line) {
+export function parseSSELine(line) {
   const t = line.trim()
   if (!t.startsWith("data:")) return null
   try {

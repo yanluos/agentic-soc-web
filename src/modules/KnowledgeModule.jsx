@@ -66,11 +66,7 @@ import {
   RailRow,
 } from "@/components/ListRail.jsx"
 import { cn } from "@/lib/utils"
-import { getStoredToken } from "@/lib/jwt.js"
-
-function authHeaders() {
-  return { Authorization: `Bearer ${getStoredToken()}` }
-}
+import { authHeaders } from "@/lib/jwt.js"
 
 async function jsonOrThrow(resp) {
   if (!resp.ok) throw new Error((await resp.text()) || `${resp.status}`)

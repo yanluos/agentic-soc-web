@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { getStoredToken } from "@/lib/jwt.js"
+import { getStoredToken, jsonAuthHeaders } from "@/lib/jwt.js"
 
 import {
   Sidebar,
@@ -847,10 +847,7 @@ function TwoFactorDialog({ open, onOpenChange, username }) {
   const codeRef = useAutofillSync(setCode)
   const passwordRef = useAutofillSync(setPassword)
 
-  const authHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${getStoredToken()}`,
-  })
+  const authHeaders = jsonAuthHeaders
 
   useEffect(() => {
     if (!open) return

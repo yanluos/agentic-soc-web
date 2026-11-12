@@ -49,7 +49,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { modules as staticModules } from "@/constants.js"
-import { getStoredToken } from "@/lib/jwt.js"
+import { jsonAuthHeaders as authHeaders } from "@/lib/jwt.js"
 import { passwordProblem } from "@/lib/passwordPolicy.js"
 import { PasswordPolicyHint } from "@/components/PasswordPolicyHint.jsx"
 
@@ -68,13 +68,6 @@ async function fetchGrantableModules() {
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
   const list = await resp.json()
   return (Array.isArray(list) ? list : []).filter((m) => m.id !== "users")
-}
-
-function authHeaders() {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${getStoredToken()}`,
-  }
 }
 
 // soc-auth 错误体是 {"error": "..."};取出说明文字,而不是把整段 JSON 显示给用户
