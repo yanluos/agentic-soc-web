@@ -28,6 +28,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
   define: { "import.meta.env.DEV": "false" },
+  // public/ (favicon, the import-map SDK) belongs to the host page only.
+  publicDir: false,
   build: {
     outDir: path.resolve(__dirname, outDir),
     emptyOutDir: true,

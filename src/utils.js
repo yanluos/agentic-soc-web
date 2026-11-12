@@ -137,46 +137,6 @@ export function getRecordId(record) {
 }
 
 // ---------------------------------------------------------------------------
-// Identity / source data helpers
-// ---------------------------------------------------------------------------
-
-/** Extract items array from any of: array / { items } / { data: { items } } / { list } / { data: { list } }. */
-export function extractItems(raw) {
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw
-  if (Array.isArray(raw.items)) return raw.items
-  if (Array.isArray(raw.list)) return raw.list
-  if (raw.data) {
-    if (Array.isArray(raw.data)) return raw.data
-    if (Array.isArray(raw.data.items)) return raw.data.items
-    if (Array.isArray(raw.data.list)) return raw.data.list
-  }
-  return []
-}
-
-/**
- * Build a dedup-preserving-insertion-order list of column keys from an array
- * of records, skipping object values (which would be nested records, not
- * scalar cells).
- */
-export function collectColumns(items) {
-  const seen = new Set()
-  const cols = []
-  for (const item of items) {
-    if (!item || typeof item !== "object") continue
-    for (const k of Object.keys(item)) {
-      if (seen.has(k)) continue
-      const v = item[k]
-      if (v !== null && typeof v === "object" && !Array.isArray(v)) continue
-      seen.add(k)
-      cols.push(k)
-    }
-  }
-  return cols
-}
-
-
-// ---------------------------------------------------------------------------
 // Display formatters
 // ---------------------------------------------------------------------------
 

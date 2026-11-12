@@ -91,12 +91,3 @@ export function qsMulti(params) {
   const s = sp.toString()
   return s ? `?${s}` : ""
 }
-
-export function prettyFields(s) {
-  if (!s || s === "{}") return ""
-  try {
-    return JSON.stringify(JSON.parse(s), null, 2)
-  } catch {
-    return s
-  }
-}
