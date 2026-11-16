@@ -17,10 +17,10 @@ function FileLink({ href, children }) {
     <a
       href={href}
       download
-      className="my-0.5 inline-flex max-w-full items-center gap-1.5 rounded-md border bg-muted/50 px-2 py-1 align-middle text-foreground no-underline transition-colors hover:bg-muted"
+      className="text-primary underline underline-offset-2 hover:opacity-80"
     >
-      <Download className="size-3.5 shrink-0 text-primary" />
-      <span className="truncate">{children}</span>
+      <Download className="mr-0.5 inline size-[0.9em] -translate-y-px align-middle" />
+      {children}
     </a>
   )
 }
