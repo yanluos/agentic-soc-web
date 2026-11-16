@@ -486,6 +486,32 @@
   filter: none;
 }
 
+/* 实心档立体感：通用卡片投影(黑 10%)压在饱和色面上读不出来——
+   与黑面主按钮同档加深的投影(带本色调) + 顶缘内高光 + 底缘内暗边。
+   soft/outline/ghost 各自覆盖 box-shadow，不受影响。 */
+.ibtn:not(.ibtn-soft, .ibtn-outline, .ibtn-ghost) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -1px 0 rgb(0 0 0 / 0.18),
+    0 2px 4px -1px color-mix(in srgb, var(--ib-lo) 55%, transparent),
+    0 1px 2px 0 rgb(0 0 0 / 0.25);
+}
+.ibtn:not(.ibtn-soft, .ibtn-outline, .ibtn-ghost):hover {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 -1px 0 rgb(0 0 0 / 0.18),
+    0 10px 16px -4px color-mix(in srgb, var(--ib-lo) 45%, transparent),
+    0 4px 8px -3px rgb(0 0 0 / 0.25);
+}
+.ibtn:not(.ibtn-soft, .ibtn-outline, .ibtn-ghost):active {
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.2),
+    0 1px 2px 0 rgb(0 0 0 / 0.3);
+}
+.ibtn:not(.ibtn-soft, .ibtn-outline, .ibtn-ghost):disabled {
+  box-shadow: none;
+}
+
 /* soft 变体：浅底彩字，行内低强调；图标浮雕同浅面按钮（凹版/暗影） */
 .ibtn-soft {
   color: var(--ib-base);
