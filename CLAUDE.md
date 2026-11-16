@@ -233,7 +233,7 @@ src/plugins/secincident/             — 安全事件表渲染器:SecIncidentIte
                                        复用 assistant/ChatMessage 渲染,用户消息带发言人;需 assistant+
                                        table:secincident,canUseCaseChat 读 JWT 判定;AI 写回后重拉时间线),标签→节点 kind,
                                        同一分钟内按写入顺序;ir_cases/bypass_blocks 按「关联事件」挂节点,
-                                       复发自 显示在入库节点;
+                                       复发自 显示在入库节点;告警发生节点默认展开「告警详情」= AlertDetail.jsx 解析研判证据的【告警日志聚合证据】段(样本/聚合键 JSON→中文标签键值表,攻击类型/杀伤链/ATT&CK 去编码,攻击结果按族译成功/未清除/已放行,时间本地化;无事件发生时间时挂入库节点),研判结论节点的折叠「研判证据」只剩其余段(【AI 研判】即研判结论不重复);
                                        workflow_runs 行归一、跟进↔run#合并、研判结论挂研判运行);
                                        shared.jsx = StatusPicker/变体色/工单预填/责任人定位工作流查找。
                                        运行按 (input,like,%"record_id":"<id>"%) 经通用表路由读取(fields

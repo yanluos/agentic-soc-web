@@ -67,6 +67,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { IconButton } from "@/components/IconButton.jsx"
 import { CaseChat, canUseCaseChat } from "./CaseChat.jsx"
 import { markOpened } from "./recentOpened.js"
+import { AlertDetail, parseEvidence } from "./AlertDetail.jsx"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
 import { MarkdownText } from "@/components/MarkdownText.jsx"
 import { CopyText } from "@/components/CopyText.jsx"
@@ -790,6 +791,12 @@ function dotFor(node) {
 }
 
 function Timeline({ nodes, fields, apiClient, advice, evidence }) {
+  // 研判证据's alert section is shown formatted on 告警发生 (or 事件入库 when
+  // the row has no 事件发生时间); the verdict keeps only what is left.
+  const ev = useMemo(() => parseEvidence(evidence), [evidence])
+  const alertKind = nodes.some((n) => n.kind === "occurred")
+    ? "occurred"
+    : "created"
   const hasAI = nodes.some(
     (n) => n.kind === "verdict" || n.kind === "followup" || n.kind === "run"
   )
@@ -828,7 +835,8 @@ function Timeline({ nodes, fields, apiClient, advice, evidence }) {
                 fields={fields}
                 apiClient={apiClient}
                 advice={advice}
-                evidence={evidence}
+                evidence={ev.rest}
+                alert={node.kind === alertKind ? ev.alert : null}
               />
             </div>
           </li>
@@ -918,32 +926,38 @@ function runStatusLabel(s) {
   }
 }
 
-function NodeBody({ node, fields, apiClient, advice, evidence }) {
+function NodeBody({ node, fields, apiClient, advice, evidence, alert }) {
   switch (node.kind) {
     case "occurred":
       return (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
-          {fields["来源"] ? <span>来源 {fields["来源"]}</span> : null}
-          {fields["告警类型"] ? <span>类型 {fields["告警类型"]}</span> : null}
-          {fields["威胁指标"] ? (
-            <span className="font-mono">{fields["威胁指标"]}</span>
-          ) : null}
-          {fields["涉事资产"] ? <span>资产 {fields["涉事资产"]}</span> : null}
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+            {fields["来源"] ? <span>来源 {fields["来源"]}</span> : null}
+            {fields["告警类型"] ? <span>类型 {fields["告警类型"]}</span> : null}
+            {fields["威胁指标"] ? (
+              <span className="font-mono">{fields["威胁指标"]}</span>
+            ) : null}
+            {fields["涉事资产"] ? <span>资产 {fields["涉事资产"]}</span> : null}
+          </div>
+          <AlertDetail alert={alert} />
         </div>
       )
     case "created":
       return (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
-          <span>
-            {fields["源ID"]
-              ? `由告警源同步入库（源 ID ${fields["源ID"]}）`
-              : "由工作流研判创建"}
-          </span>
-          {fields["复发自"] ? (
-            <CopyText value={String(fields["复发自"])} label="原事件 ID">
-              复发自已结案事件 #{fields["复发自"]}
-            </CopyText>
-          ) : null}
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground">
+            <span>
+              {fields["源ID"]
+                ? `由告警源同步入库（源 ID ${fields["源ID"]}）`
+                : "由工作流研判创建"}
+            </span>
+            {fields["复发自"] ? (
+              <CopyText value={String(fields["复发自"])} label="原事件 ID">
+                复发自已结案事件 #{fields["复发自"]}
+              </CopyText>
+            ) : null}
+          </div>
+          <AlertDetail alert={alert} />
         </div>
       )
     case "verdict":
@@ -1095,7 +1109,8 @@ function CaseMemo({ text }) {
   )
 }
 
-// 研判证据: the AI's evidence block written at triage (告警聚合 + 指纹), folded
+// 研判证据: whatever of the AI's evidence block is not the alert section
+// (that one renders formatted on 告警发生 — AlertDetail.jsx), folded
 // by default — the conclusion above is what the analyst reads first.
 function EvidenceBlock({ text }) {
   const [open, setOpen] = useState(false)
