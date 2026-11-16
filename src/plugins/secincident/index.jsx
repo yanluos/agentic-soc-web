@@ -6,6 +6,7 @@ import { ShieldAlert } from "lucide-react"
 
 const SecIncidentItem = lazy(() => import("./SecIncidentItem.jsx").then((m) => ({ default: m.SecIncidentItem })))
 const TodoRail = lazy(() => import("./TodoRail.jsx").then((m) => ({ default: m.TodoRail })))
+const QuickSearch = lazy(() => import("./QuickSearch.jsx").then((m) => ({ default: m.QuickSearch })))
 const CaseChatNotices = lazy(() => import("./CaseChatNotices.jsx").then((m) => ({ default: m.CaseChatNotices })))
 const SecIncidentCreateDialog = lazy(() => import("./SecIncidentCreate.jsx").then((m) => ({ default: m.SecIncidentCreateDialog })))
 
@@ -17,9 +18,19 @@ export default {
   tableRenderers: {
     secincident: {
       renderItem: (ctx) => (item) => <SecIncidentItem key={item.id} apiClient={ctx.apiClient} setError={ctx.setError} {...item} />,
-      // 右上角：案件会话「AI 回复中 / AI 已回复」提醒 + 新建事件
-      renderCreate: (ctx) => ({ columns, onCreated, patchRecord, refreshRecord, deleteRecord }) => (
+      // 右上角：快速搜索 + 案件会话「AI 回复中 / AI 已回复」提醒 + 新建事件
+      renderCreate: (ctx) => ({ columns, onCreated, patchRecord, refreshRecord, deleteRecord, searchWhere, setSearchWhere }) => (
         <>
+          <QuickSearch
+            apiClient={ctx.apiClient}
+            setError={ctx.setError}
+            columns={columns}
+            patchRecord={patchRecord}
+            refreshRecord={refreshRecord}
+            deleteRecord={deleteRecord}
+            searchWhere={searchWhere}
+            setSearchWhere={setSearchWhere}
+          />
           <CaseChatNotices
             apiClient={ctx.apiClient}
             setError={ctx.setError}

@@ -95,6 +95,10 @@ export function GenericTableModule({
   const [recordsLoading, setRecordsLoading] = useState(false)
 
   const viewState = useTableViewState(slug, columns)
+  // Extra where clause from a module's own quick search (安全事件顶栏搜索):
+  // ANDed onto the filter-panel tree, handed to renderCreate/renderAside as
+  // searchWhere/setSearchWhere. Not persisted with the table view.
+  const [searchWhere, setSearchWhere] = useState("")
 
   // ── Meta ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -142,7 +146,10 @@ export function GenericTableModule({
 
   const loadRecords = useCallback(async () => {
     if (columns.length === 0) return
-    const where = nodeToWhere(viewState.filterTree, true, columns)
+    const base = nodeToWhere(viewState.filterTree, true, columns)
+    // The outer parens make the backend parser treat each side as a group.
+    const where =
+      base && searchWhere ? `(${base})~and(${searchWhere})` : base || searchWhere
     const sort = viewState.sort
     const sig = `${where}|${sort}|${pageSize}`
     // Query changed while scrolled to a later page: wait for the page-reset
@@ -193,6 +200,7 @@ export function GenericTableModule({
     pageSize,
     viewState.filterTree,
     viewState.sort,
+    searchWhere,
     reloadToken,
   ])
 
@@ -203,7 +211,7 @@ export function GenericTableModule({
   // Reset to the first page when filter/sort/pageSize change.
   useEffect(() => {
     setPage(1)
-  }, [viewState.filterTree, viewState.sort, pageSize])
+  }, [viewState.filterTree, viewState.sort, searchWhere, pageSize])
 
   // Reload from the top (after a mutation or manual refresh).
   const reloadFromTop = useCallback(() => {
@@ -489,6 +497,8 @@ export function GenericTableModule({
                   patchRecord,
                   refreshRecord,
                   deleteRecord: showDelete ? confirmDelete : undefined,
+                  searchWhere,
+                  setSearchWhere,
                 })
               : undefined
           }
@@ -512,6 +522,8 @@ export function GenericTableModule({
                 patchRecord,
                 refreshRecord,
                 deleteRecord: showDelete ? confirmDelete : undefined,
+                searchWhere,
+                setSearchWhere,
               })}
             </div>
           ) : null}
@@ -540,8 +552,14 @@ export function GenericTableModule({
               <div className={cn("rounded-lg bg-card", cardHover)}>
                 <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
                   <Inbox className="size-8 text-muted-foreground/60" />
-                  <div className="font-medium text-foreground">暂无数据</div>
-                  <div>调整筛选条件或同步数据后重试</div>
+                  <div className="font-medium text-foreground">
+                    {searchWhere ? "没有匹配搜索的记录" : "暂无数据"}
+                  </div>
+                  <div>
+                    {searchWhere
+                      ? "换个关键字，或清空搜索框"
+                      : "调整筛选条件或同步数据后重试"}
+                  </div>
                 </div>
               </div>
             ) : (
