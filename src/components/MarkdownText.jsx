@@ -7,6 +7,9 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { Download } from "lucide-react"
 
+import { cn } from "@/lib/utils"
+import { cardHover } from "@/lib/styles"
+
 // Download links minted by soc-ai's file_share tool (/api/v1/files/d/<token>,
 // relative in chat, absolute in IM). Rendered as a file chip that downloads in
 // place — the response is Content-Disposition: attachment, so no new tab.
@@ -17,10 +20,16 @@ function FileLink({ href, children }) {
     <a
       href={href}
       download
-      className="text-primary underline underline-offset-2 hover:opacity-80"
+      // Small raised chip: text-xs + tight padding keeps it inside the prose
+      // line box (no taller line), platform card elevation lifts it on hover.
+      className={cn(
+        "mx-0.5 inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 align-middle text-xs leading-4 text-foreground no-underline",
+        cardHover,
+        "transition-[box-shadow,transform,background-color] hover:-translate-y-px hover:bg-card"
+      )}
     >
-      <Download className="mr-0.5 inline size-[0.9em] -translate-y-px align-middle" />
-      {children}
+      <Download className="size-3 shrink-0 text-primary" />
+      <span className="truncate">{children}</span>
     </a>
   )
 }
