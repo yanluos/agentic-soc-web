@@ -37,6 +37,9 @@ export function TableToolbar({
   extraActions,
   showFields = true,
   createSlot,
+  // Optional node shown first in the right-hand group (before 刷新), e.g. a
+  // module's quick-search box.
+  searchSlot,
 }) {
   const { filterTree, hidden, sort, setFilterTree, setSort } = viewState
   // The filter popover edits a local draft; the tree is committed (and the
@@ -130,6 +133,7 @@ export function TableToolbar({
       {extraActions}
 
       <div className="ml-auto flex items-center gap-2">
+        {searchSlot}
         <IconButton
           color="blue"
           size="sm"

@@ -213,14 +213,15 @@ export function QuickSearch({
     <>
       <Popover open={showDrop} onOpenChange={setOpen}>
         <PopoverAnchor asChild>
-          <InputGroup className="soc-field-sm h-7 w-64">
+          <InputGroup className="soc-field-sm h-7 w-44">
             <InputGroupAddon>
               {loading ? <Spinner /> : <Search />}
             </InputGroupAddon>
             <InputGroupInput
               ref={inputRef}
               value={q}
-              placeholder="搜索 ID / IP / IOC / 人员 / 公司…"
+              placeholder="搜索 ID / IP / 人员…"
+              className="text-xs placeholder:text-xs placeholder:text-muted-foreground/60"
               aria-label="快速搜索安全事件"
               onChange={(e) => {
                 setQ(e.target.value)

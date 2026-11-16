@@ -73,6 +73,10 @@ export function GenericTableModule({
   // same in-place patch/refresh/delete the cards get, so a rail-opened detail
   // keeps the main list consistent.
   renderAside,
+  // Optional quick search in the toolbar's right group, left of 刷新:
+  // renderSearch({columns, patchRecord, refreshRecord, deleteRecord,
+  // searchWhere, setSearchWhere}). List mode only.
+  renderSearch,
   // 工具栏放进顶栏插槽(TopBarPortal;带标签页的模块可提供子插槽,见
   // components/TopBarSlot.jsx)。传 false 则留在列表上方原地渲染。
   toolbarInTopBar = true,
@@ -489,6 +493,18 @@ export function GenericTableModule({
           onCreate={startCreate}
           extraActions={extraToolbarActions}
           showFields={!renderItem}
+          searchSlot={
+            renderItem && renderSearch
+              ? renderSearch({
+                  columns,
+                  patchRecord,
+                  refreshRecord,
+                  deleteRecord: showDelete ? confirmDelete : undefined,
+                  searchWhere,
+                  setSearchWhere,
+                })
+              : undefined
+          }
           createSlot={
             renderItem && renderCreate
               ? renderCreate({

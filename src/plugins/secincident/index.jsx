@@ -18,19 +18,11 @@ export default {
   tableRenderers: {
     secincident: {
       renderItem: (ctx) => (item) => <SecIncidentItem key={item.id} apiClient={ctx.apiClient} setError={ctx.setError} {...item} />,
-      // 右上角：快速搜索 + 案件会话「AI 回复中 / AI 已回复」提醒 + 新建事件
-      renderCreate: (ctx) => ({ columns, onCreated, patchRecord, refreshRecord, deleteRecord, searchWhere, setSearchWhere }) => (
+      // 顶栏右侧最左：快速搜索(刷新按钮之前)
+      renderSearch: (ctx) => (props) => <QuickSearch apiClient={ctx.apiClient} setError={ctx.setError} {...props} />,
+      // 右上角：案件会话「AI 回复中 / AI 已回复」提醒 + 新建事件
+      renderCreate: (ctx) => ({ columns, onCreated, patchRecord, refreshRecord, deleteRecord }) => (
         <>
-          <QuickSearch
-            apiClient={ctx.apiClient}
-            setError={ctx.setError}
-            columns={columns}
-            patchRecord={patchRecord}
-            refreshRecord={refreshRecord}
-            deleteRecord={deleteRecord}
-            searchWhere={searchWhere}
-            setSearchWhere={setSearchWhere}
-          />
           <CaseChatNotices
             apiClient={ctx.apiClient}
             setError={ctx.setError}

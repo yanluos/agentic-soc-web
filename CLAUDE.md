@@ -227,7 +227,7 @@ src/plugins/logs/                    — 日志服务远程插件前端(remote-e
                                        主包,只经 build:remote:logs 打包;Tailwind 类因在 src/
                                        下仍被宿主样式表扫描——新增工具类后宿主要重新 build,
                                        开发态要重启 Vite)
-src/plugins/secincident/             — 安全事件表渲染器:QuickSearch.jsx = 顶栏快速搜索(renderCreate 里,⌘K 或 / 聚焦;关键字按空白拆词,词间 AND、每词在 id/标题/威胁指标/涉事资产/责任员工/责任人邮箱/前台公司/组织架构/来源/告警类型 间 OR 做 like 模糊匹配,ASCII 括号换成 `_` 因为后端 leaf 解析遇 `)` 截断;下拉列前 20 条,点击/回车取整行后打开详情模态框,底部「在列表中显示全部 N 条」经 setSearchWhere 筛主列表,清空 X 撤销);SecIncidentItem 紧凑卡片(整卡点击打开时间线;右端按钮=案件会话入口,无会话灰/有会话蓝/AI 回复中绿色呼吸,点开会话页)
+src/plugins/secincident/             — 安全事件表渲染器:QuickSearch.jsx = 顶栏快速搜索(描述符 renderSearch → GenericTableModule → TableToolbar searchSlot,工具栏右侧组最左、刷新按钮前,w-44;⌘K 或 / 聚焦;关键字按空白拆词,词间 AND、每词在 id/标题/威胁指标/涉事资产/责任员工/责任人邮箱/前台公司/组织架构/来源/告警类型 间 OR 做 like 模糊匹配,ASCII 括号换成 `_` 因为后端 leaf 解析遇 `)` 截断;下拉列前 20 条,点击/回车取整行后打开详情模态框,底部「在列表中显示全部 N 条」经 setSearchWhere 筛主列表,清空 X 撤销);SecIncidentItem 紧凑卡片(整卡点击打开时间线;右端按钮=案件会话入口,无会话灰/有会话蓝/AI 回复中绿色呼吸,点开会话页)
                                        → SecIncidentDetail 覆盖式 Dialog(h-[88vh] w-[1200px]:左栏
                                        告警信息/人员信息/研判与处置可编辑,右栏事件时间线);timeline.js
                                        纯函数拼时间线(跟进记录 `#### 时间 · 跟进 #n|工单|结案|复发|建议|处置|应急|备注（actor）` 解析;左栏「案件纪要（AI）」按小节只读展示;右栏 ToggleGroup 切 事件时间线 | 案件会话
@@ -251,7 +251,7 @@ src/plugins/secincident/             — 安全事件表渲染器:QuickSearch.js
                                        tableview:secincident = {"sort":"-CreatedAt"} 让最新事件排前
 src/plugins/<id>/index.jsx           — 插件前端描述符(极小,eager glob 进主包):
                                        { id, sdk, icon?, modules[], hiddenTables,
-                                         tableRenderers{slug:{renderItem,renderCreate,renderAside?,patchPath?,deletePath?}},
+                                         tableRenderers{slug:{renderItem,renderCreate,renderAside?,renderSearch?,patchPath?,deletePath?}},
                                          settingsSections[{key,title,desc,hot}], settingsEditors{section: lazy},
                                          panels[{key,label,icon,permission?,component}], sources, icons }
                                        启用与权限以后端 GET /api/v1/plugins 为准(registry.js);
