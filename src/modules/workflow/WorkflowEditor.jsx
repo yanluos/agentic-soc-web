@@ -583,6 +583,7 @@ function toRF(graph) {
       appiaRoomId: n.appia_room_id || "",
       outcome: n.outcome || "",
       dedupKey: n.dedup_key || "",
+      notifyAfter: n.notify_after || "",
       condition: n.condition || "",
       text: n.text || "",
     },
@@ -654,6 +655,7 @@ function toGraph(meta, rfNodes, rfEdges) {
         // Cross-run dedup of identical pending approvals (one card per block
         // object) — must round-trip or an editor save re-enables duplicates.
         if (d.dedupKey) out.dedup_key = d.dedupKey
+        if (d.notifyAfter) out.notify_after = d.notifyAfter
       }
       if (d.kind === "condition") out.condition = d.condition
       if (d.kind === "note") out.text = d.text || ""
@@ -779,7 +781,7 @@ function EditorInner({ graph, meta, tools, models, run, onSave, onExit, onEdit, 
         id,
         type: "wf",
         position: { x: 80 + ns.length * 24, y: 80 + ns.length * 24 },
-        data: { kind, label, tool: presetTool, prompt: "", input: "", model: "", tools: [], condition: "", notify: "", notifyChannels: [], appiaCompany: "", appiaRoomId: "", outcome: "", dedupKey: "", text: "" },
+        data: { kind, label, tool: presetTool, prompt: "", input: "", model: "", tools: [], condition: "", notify: "", notifyChannels: [], appiaCompany: "", appiaRoomId: "", outcome: "", dedupKey: "", notifyAfter: "", text: "" },
       },
     ])
   }
@@ -1541,6 +1543,18 @@ function ApprovalConfig({ d, readOnly, onChange }) {
         />
         <FieldDescription>
           插值后与任何工作流里正在等待审批的同键审批相同时，本次不再发起审批，本节点及其后续跳过。封禁类审批统一用 {"block:<对象>"}。
+        </FieldDescription>
+      </Field>
+      <Field>
+        <FieldLabel>延迟通知（可选）</FieldLabel>
+        <Input
+          placeholder="如 30m —— 留空则暂停时立即通知"
+          value={d.notifyAfter || ""}
+          disabled={readOnly}
+          onChange={(e) => onChange({ notifyAfter: e.target.value.trim() })}
+        />
+        <FieldDescription>
+          设置后审批先只进平台「审批」待办；超过该时长仍未决定，才把审批卡发到上面的通知渠道（如 Appia 群）。格式 30m / 1h，最长 24h。
         </FieldDescription>
       </Field>
     </>
