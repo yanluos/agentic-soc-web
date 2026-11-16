@@ -239,8 +239,8 @@ src/plugins/secincident/             — 安全事件表渲染器:SecIncidentIte
                                        运行按 (input,like,%"record_id":"<id>"%) 经通用表路由读取(fields
                                        投影不拉 definition),步骤经 GET /api/v1/workflows/runs/{id};
                                        lib/workflowEvents 订阅实时刷新。TodoRail = renderAside 挂的待办栏:
-                                       六条独立折叠栏上下纵向叠放(最近打开 + AI 回复 + 高危/中危/低危/误报待办;AI 回复=案件会话最近有 AI 回答的事件(所有值班人员的,GET /agent/cases/recent,无案件会话权限时隐藏,案件回合结束即重查,方卡时间=回复时间、底行=提问人+回复摘要);最近打开=本浏览器打开过详情的事件,最近在前、不限状态,recentOpened.js 在 SecIncidentDetailDialog 打开时 markOpened 写 localStorage secincident:recent-opened 最多 30 条,展开按 (id,in,…) 拉取、已删除的自动剔除,方卡多显示风险徽标),折叠态=w-9 窄条
-                                       (下箭头+图标+计数徽标+竖排名称),点开变 w-48 方卡列(该等级下 处置状态
+                                       六条独立折叠栏上下纵向叠放(近期活动 + 最近打开 + 高危/中危/低危/误报待办;近期活动=案件会话最近有 AI 回答的事件(所有值班人员的,GET /agent/cases/recent,无案件会话权限时隐藏,案件回合结束即重查,方卡时间=回复时间、底行=提问人+回复摘要);最近打开=本浏览器打开过详情的事件,最近在前、不限状态,recentOpened.js 在 SecIncidentDetailDialog 打开时 markOpened 写 localStorage secincident:recent-opened 最多 30 条,展开按 (id,in,…) 拉取、已删除的自动剔除,方卡多显示风险徽标),折叠态=w-9 窄条
+                                       (下箭头+图标+计数徽标+竖排名称;有一条展开时其余折叠条横排成 w-48 标题行),点开变 w-48 方卡列(该等级下 处置状态
                                        待跟进|跟进中,待跟进在前、最新在前,一次拉 500 条全部铺开,列高随内容
                                        撑开,在左栏自己的滚动容器里滚,与右侧列表互不影响),手风琴:一次只开一条;默认全部折叠,
                                        开着的等级存 localStorage secincident:todo-rail-open;折叠条只拉

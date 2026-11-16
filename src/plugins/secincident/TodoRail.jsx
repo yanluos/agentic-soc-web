@@ -1,11 +1,13 @@
 // 待办告警 rails — the left side of the 安全事件 list stacks SIX collapsible
-// rails vertically: 最近打开 (the incidents whose detail this browser opened,
-// most recent first, any 处置状态 — recentOpened.js), AI 回复 (incidents whose
-// case session most recently got an AI answer, any on-call's — GET
-// /agent/cases/recent; only with the case-chat grants), then one per
+// rails vertically: 近期活动 (incidents whose case session most recently got
+// an AI answer, any on-call's — GET /agent/cases/recent; only with the
+// case-chat grants), 最近打开 (the incidents whose detail this browser opened,
+// most recent first, any 处置状态 — recentOpened.js), then one per
 // 风险等级 (高危 / 中危 / 低危 / 误报待办). A collapsed
 // rail is a narrow strip (chevron + icon + count badge + vertical label) that
-// only fetches its count (limit=1 → pageInfo.totalRows); clicking it unfolds
+// only fetches its count (limit=1 → pageInfo.totalRows); while another rail
+// is open the collapsed ones turn into w-48 horizontal title rows instead, so
+// the column reads as one list. Clicking a rail unfolds
 // it into a column of square cards — the events of that level whose 处置状态
 // is 待跟进 | 跟进中 (待跟进 first, newest first), ALL of them laid out in full
 // (the column grows with its content and scrolls with the page; nothing is
@@ -59,9 +61,18 @@ const OPEN_STATUSES = "((处置状态,eq,待跟进)~or(处置状态,eq,跟进中
 // List rails are keyed by a fixed id list (newest first) instead of a
 // 风险等级 query.
 const RECENT = "recent" // 最近打开
-const AI_REPLIES = "ai" // AI 回复
+const AI_REPLIES = "ai" // 近期活动(案件会话最近的 AI 回复)
 const LIST_MAX = 30
 const RAILS = [
+  {
+    risk: AI_REPLIES,
+    list: true,
+    label: "近期活动",
+    accent: "border-border",
+    icon: "text-primary",
+    Icon: MessageSquareText,
+    empty: "还没有 AI 回复过的案件会话",
+  },
   {
     risk: RECENT,
     list: true,
@@ -70,15 +81,6 @@ const RAILS = [
     icon: "text-primary",
     Icon: History,
     empty: "还没有打开过事件",
-  },
-  {
-    risk: AI_REPLIES,
-    list: true,
-    label: "AI 回复",
-    accent: "border-border",
-    icon: "text-primary",
-    Icon: MessageSquareText,
-    empty: "还没有 AI 回复过的案件会话",
   },
   {
     risk: "高",
@@ -194,6 +196,8 @@ export function TodoRail({
     [replies]
   )
   const rails = replies ? RAILS : RAILS.filter((r) => r.risk !== AI_REPLIES)
+  // 有一条展开时栏宽 w-48,其余折叠条也横排成同宽的标题行,不再是竖排窄条。
+  const anyOpen = rails.some((r) => r.risk === openRisk)
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
   // Accordion: unfolding one rail folds the other.
@@ -231,7 +235,7 @@ export function TodoRail({
 
   return (
     <>
-      {/* 纵向叠放的六条栏(最近打开 + AI 回复 + 四个风险等级);展开的那条按内容全高铺开,随页面滚动,其余保持窄条 */}
+      {/* 纵向叠放的六条栏(近期活动 + 最近打开 + 四个风险等级);展开的那条按内容全高铺开,其余折叠:都折叠时是竖排窄条,有一条展开时横排成同宽标题行 */}
       <div className="flex shrink-0 flex-col items-start gap-2">
         {rails.map((rail) => (
           <RiskRail
@@ -248,6 +252,7 @@ export function TodoRail({
             apiClient={apiClient}
             setError={setError}
             open={openRisk === rail.risk}
+            wide={anyOpen}
             onToggle={() => toggle(rail)}
             reloadToken={reloadToken}
             tick={tick}
@@ -290,6 +295,7 @@ function RiskRail({
   apiClient,
   setError,
   open,
+  wide,
   onToggle,
   reloadToken,
   tick,
@@ -368,6 +374,49 @@ function RiskRail({
 
   const Icon = rail.Icon || Siren
   const isList = !!rail.list
+
+  if (!open && wide) {
+    return (
+      <div
+        className={cn(
+          "flex w-48 shrink-0 items-center gap-1 rounded-lg bg-card px-2 py-1.5",
+          cardStatic
+        )}
+      >
+        <IconButton
+          color="gray"
+          variant="ghost"
+          size="sm"
+          aria-label={`展开${rail.label}栏`}
+          onClick={onToggle}
+        >
+          <ChevronDown />
+        </IconButton>
+        <Icon className={cn("size-4 shrink-0", rail.icon)} />
+        <button
+          type="button"
+          className="min-w-0 flex-1 truncate text-left text-sm text-muted-foreground"
+          onClick={onToggle}
+        >
+          {rail.label}
+        </button>
+        {total != null ? (
+          <Badge
+            variant={
+              total
+                ? isList
+                  ? "secondary"
+                  : riskVariant(rail.risk)
+                : "outline"
+            }
+            className="px-1.5 text-[10px]"
+          >
+            {total}
+          </Badge>
+        ) : null}
+      </div>
+    )
+  }
 
   if (!open) {
     return (
