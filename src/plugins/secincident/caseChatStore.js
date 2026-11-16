@@ -160,6 +160,7 @@ function plain(md) {
 }
 
 function finish(id, { title, preview, error }) {
+  repliesSeq += 1
   const w = { ...watching }
   delete w[id]
   writeWatching(w)
@@ -348,6 +349,9 @@ ensurePolling()
 // some card is mounted (the list is on screen), stopped when none is.
 const ACTIVE_POLL_MS = 5000
 let activeIds = new Set()
+// repliesSeq bumps whenever a case turn (anyone's) is seen to finish — the
+// 「AI 回复」rail re-queries on it instead of waiting for its own poll.
+let repliesSeq = 0
 let sessionIds = new Set() // incidents with a saved case conversation
 let activeSubs = 0
 let activeTimer = null
@@ -371,6 +375,7 @@ async function pollActive() {
       const next = new Set((d.active || []).map(String))
       const nextSessions = new Set((d.sessions || []).map(String))
       if (!sameSet(next, activeIds) || !sameSet(nextSessions, sessionIds)) {
+        if ([...activeIds].some((x) => !next.has(x))) repliesSeq += 1
         activeIds = next
         sessionIds = nextSessions
         emit()
@@ -410,4 +415,9 @@ export function useCaseActivity(id, enabled = true) {
   return useSyncExternalStore(subscribe, () =>
     enabled ? activityOf(String(id)) : ""
   )
+}
+
+// useCaseRepliesVersion → a counter that changes when some case turn ends.
+export function useCaseRepliesVersion() {
+  return useSyncExternalStore(subscribe, () => repliesSeq)
 }

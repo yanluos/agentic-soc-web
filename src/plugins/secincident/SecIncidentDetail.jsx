@@ -66,6 +66,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { IconButton } from "@/components/IconButton.jsx"
 import { CaseChat, canUseCaseChat } from "./CaseChat.jsx"
+import { markOpened } from "./recentOpened.js"
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton.jsx"
 import { MarkdownText } from "@/components/MarkdownText.jsx"
 import { CopyText } from "@/components/CopyText.jsx"
@@ -300,6 +301,10 @@ export function SecIncidentDetailDialog({
   const [pane, setPane] = useState(
     initialPane === "chat" && chatAllowed ? "chat" : "timeline"
   )
+  // 「最近打开」栏:每次打开详情都把它提到最前
+  useEffect(() => {
+    if (open) markOpened(id)
+  }, [open, id])
 
   const risk = fields["风险等级"]
   const status = fields["处置状态"]
