@@ -33,6 +33,7 @@ import { LevelBadge } from "./LevelBadge.jsx"
 import { ListFilter } from "./ListFilter.jsx"
 import { FINDING_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { RowSheet } from "./RowSheet.jsx"
+import { useColResize } from "./useColResize.jsx"
 import {
   errMsg,
   fields,
@@ -42,6 +43,18 @@ import {
   parseJSON,
   truncate,
 } from "./lib.js"
+
+const COL_KEYS = [
+  "sel",
+  "level",
+  "score",
+  "type",
+  "name",
+  "path",
+  "reasons",
+  "status",
+  "verdict",
+]
 
 function statusVariant(s) {
   switch (s) {
@@ -75,6 +88,7 @@ export function FindingsTab({
     () => nodeToWhere(tree, true, FINDING_FILTER_FIELDS),
     [tree]
   )
+  const resize = useColResize("findings", COL_KEYS)
   const [rows, setRows] = useState(null)
   const [loading, setLoading] = useState(false)
   const [sel, setSel] = useState(() => new Set())
@@ -224,10 +238,10 @@ export function FindingsTab({
         </IconButton>
       </div>
       <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-lg border">
-        <Table className="table-fixed">
+        <Table className="table-fixed" style={resize.tableStyle}>
           <TableHeader className="sticky top-0 bg-background">
             <TableRow>
-              <TableHead className="w-8">
+              <TableHead {...resize.thProps("sel")} className="w-8">
                 <Checkbox
                   checked={allChecked}
                   onCheckedChange={toggleAll}
@@ -235,14 +249,62 @@ export function FindingsTab({
                   disabled={!rows?.length}
                 />
               </TableHead>
-              <TableHead className="w-16">等级</TableHead>
-              <TableHead className="w-14 text-right">分数</TableHead>
-              <TableHead className="w-20">类型</TableHead>
-              <TableHead>名称</TableHead>
-              <TableHead>路径 / 命令行</TableHead>
-              <TableHead>原因</TableHead>
-              <TableHead className="w-24">状态</TableHead>
-              <TableHead className="w-32">研判</TableHead>
+              <TableHead
+                {...resize.thProps("level")}
+                className="relative w-16 truncate"
+              >
+                等级
+                {resize.handle("level")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("score")}
+                className="relative w-14 truncate text-right"
+              >
+                分数
+                {resize.handle("score")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("type")}
+                className="relative w-20 truncate"
+              >
+                类型
+                {resize.handle("type")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("name")}
+                className="relative truncate"
+              >
+                名称
+                {resize.handle("name")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("path")}
+                className="relative truncate"
+              >
+                路径 / 命令行
+                {resize.handle("path")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("reasons")}
+                className="relative truncate"
+              >
+                原因
+                {resize.handle("reasons")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("status")}
+                className="relative w-24 truncate"
+              >
+                状态
+                {resize.handle("status")}
+              </TableHead>
+              <TableHead
+                {...resize.thProps("verdict")}
+                className="relative w-32 truncate"
+              >
+                研判
+                {resize.handle("verdict")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -1,5 +1,6 @@
-// RowSheet — full-field drawer for one view row: reasons (with points), the
-// score breakdown for execution objects, then every field as key/value.
+// RowSheet — the detail of one list row, shown as a centred modal Dialog (it
+// was a side Sheet until 2026-11-19; the name stayed): reasons (with points),
+// the score breakdown for execution objects, then every field as key/value.
 import { Bot } from "lucide-react"
 import { toast } from "sonner"
 
@@ -7,12 +8,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { copyToClipboard } from "@/components/CopyText.jsx"
 import { LevelBadge } from "./LevelBadge.jsx"
 import { ScoreBreakdown } from "./ScoreBreakdown.jsx"
@@ -56,21 +57,21 @@ export function RowSheet({ row, title, onOpenChange, onNavigate, hostname }) {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onOpenChange(null)}>
-      <SheetContent className="flex w-full flex-col gap-0 sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={(o) => !o && onOpenChange(null)}>
+      <DialogContent className="flex max-h-[88vh] w-[920px] flex-col gap-0 p-0 sm:max-w-[calc(100vw-4rem)]">
+        <DialogHeader className="min-w-0 p-4 pr-12">
+          <DialogTitle className="flex min-w-0 items-center gap-2">
             {row?.score != null ? (
               <LevelBadge level={row.level} score={row.score} showScore />
             ) : null}
             <span className="truncate">
               {title || row?.name || row?.path || "记录详情"}
             </span>
-          </SheetTitle>
-          <SheetDescription className="truncate font-mono text-xs">
+          </DialogTitle>
+          <DialogDescription className="font-mono text-xs break-all">
             {row?.path || row?.value || row?.command_line || ""}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex min-h-0 thin-scrollbar flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           {row?.scores ? (
             <section className="flex flex-col gap-2">
@@ -159,7 +160,7 @@ export function RowSheet({ row, title, onOpenChange, onNavigate, hostname }) {
             </Button>
           </div>
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

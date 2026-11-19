@@ -40,8 +40,10 @@ import { LevelBadge } from "./LevelBadge.jsx"
 import { ListFilter } from "./ListFilter.jsx"
 import { MONITOR_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { RowSheet } from "./RowSheet.jsx"
+import { useColResize } from "./useColResize.jsx"
 import { TRIGGER_LABELS, errMsg, fields, fmtTime } from "./lib.js"
 
+const COL_KEYS = ["time", "kind", "risk", "what", "path"]
 const POLL_MS = 5000
 const PAGE = 200
 
@@ -109,6 +111,7 @@ export function MonitorTab({
     () => nodeToWhere(tree, true, MONITOR_FILTER_FIELDS),
     [tree]
   )
+  const resize = useColResize("monitor", COL_KEYS)
   const [open, setOpen] = useState(null)
   const [monitor, setMonitor] = useState(null)
   const [events, setEvents] = useState(null)
@@ -289,14 +292,44 @@ export function MonitorTab({
 
       <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-md border">
         {events?.length ? (
-          <Table className="table-fixed">
+          <Table className="table-fixed" style={resize.tableStyle}>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-40">主机时间</TableHead>
-                <TableHead className="w-28">类型</TableHead>
-                <TableHead className="w-24">风险</TableHead>
-                <TableHead className="w-[32%]">变化</TableHead>
-                <TableHead>路径 / 命令行</TableHead>
+                <TableHead
+                  {...resize.thProps("time")}
+                  className="relative w-40 truncate"
+                >
+                  主机时间
+                  {resize.handle("time")}
+                </TableHead>
+                <TableHead
+                  {...resize.thProps("kind")}
+                  className="relative w-28 truncate"
+                >
+                  类型
+                  {resize.handle("kind")}
+                </TableHead>
+                <TableHead
+                  {...resize.thProps("risk")}
+                  className="relative w-24 truncate"
+                >
+                  风险
+                  {resize.handle("risk")}
+                </TableHead>
+                <TableHead
+                  {...resize.thProps("what")}
+                  className="relative w-[32%] truncate"
+                >
+                  变化
+                  {resize.handle("what")}
+                </TableHead>
+                <TableHead
+                  {...resize.thProps("path")}
+                  className="relative truncate"
+                >
+                  路径 / 命令行
+                  {resize.handle("path")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

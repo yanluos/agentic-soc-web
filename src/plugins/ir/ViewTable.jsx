@@ -4,7 +4,8 @@
 // search; sortable score/time headers; 50 rows a page; row click opens
 // RowSheet. The table is `table-fixed`: it always fills the pane and never
 // grows past it — narrow columns carry a width (COL_WIDTH), the rest share
-// what is left and truncate. The 进程 view adds a 树/表 toggle that swaps in
+// what is left and truncate; every column can be dragged wider/narrower
+// (useColResize, remembered per view). The 进程 view adds a 树/表 toggle that swaps in
 // ProcessTree (view "tree").
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -49,6 +50,7 @@ import { ListFilter } from "./ListFilter.jsx"
 import { VIEW_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { ProcessTree } from "./ProcessTree.jsx"
 import { RowSheet } from "./RowSheet.jsx"
+import { useColResize } from "./useColResize.jsx"
 import { VIEWS, errMsg, listOf } from "./lib.js"
 
 const LIMIT = 50
@@ -75,6 +77,8 @@ export function ViewTable({
 }) {
   const meta = VIEWS.find((v) => v.key === view)
   const columns = COLUMNS[view] || COLUMNS.objects
+  const colKeys = useMemo(() => columns.map((c) => c.key), [columns])
+  const resize = useColResize(view, colKeys)
   const filterFields = VIEW_FILTER_FIELDS[view] || VIEW_FILTER_FIELDS.objects
   const ftree = useMemo(
     () => filterTree || defaultTree(view),
@@ -217,14 +221,15 @@ export function ViewTable({
         </div>
       ) : (
         <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-lg border">
-          <Table className="table-fixed">
+          <Table className="table-fixed" style={resize.tableStyle}>
             <TableHeader className="sticky top-0 bg-background">
               <TableRow>
                 {columns.map((c) => (
                   <TableHead
                     key={c.key}
+                    {...resize.thProps(c.key)}
                     className={cn(
-                      "truncate",
+                      "relative truncate",
                       colWidth(view, c.key),
                       c.className,
                       c.sort && "cursor-pointer select-none"
@@ -241,6 +246,7 @@ export function ViewTable({
                         )
                       ) : null}
                     </span>
+                    {resize.handle(c.key)}
                   </TableHead>
                 ))}
               </TableRow>
