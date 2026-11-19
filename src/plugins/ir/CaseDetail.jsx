@@ -46,6 +46,7 @@ import { OverviewTab } from "./OverviewTab.jsx"
 import { TokenReveal } from "./TokenReveal.jsx"
 import { UploadDialog } from "./UploadDialog.jsx"
 import { ViewTable } from "./ViewTable.jsx"
+import { MonitorTab } from "./MonitorTab.jsx"
 import { CASE_STATUSES, VIEWS, errMsg, fields, fmtTime } from "./lib.js"
 
 function saveBlob(blob, filename) {
@@ -300,6 +301,12 @@ export function CaseDetail({
         <TabsList className="flex-wrap">
           <TabsTrigger value="overview">概览</TabsTrigger>
           <TabsTrigger value="findings">发现</TabsTrigger>
+          <TabsTrigger value="monitor">
+            实时监控
+            {f["监控状态"] === "监控中" ? (
+              <span className="size-1.5 rounded-full bg-success" />
+            ) : null}
+          </TabsTrigger>
           {VIEWS.map((v) => (
             <TabsTrigger key={v.key} value={v.key}>
               {v.label}
@@ -327,6 +334,16 @@ export function CaseDetail({
               onChanged={reload}
             />
           ) : null}
+        </TabsContent>
+        <TabsContent value="monitor" className="flex min-h-0 flex-1 flex-col">
+          <MonitorTab
+            key={refreshKey}
+            api={api}
+            caseId={id}
+            onResetToken={resetToken}
+            onNavigate={onNavigate}
+            hostname={f["主机名"]}
+          />
         </TabsContent>
         {VIEWS.map((v) => (
           <TabsContent
@@ -362,7 +379,7 @@ export function CaseDetail({
         open={!!tokenResult}
         onOpenChange={(o) => !o && setTokenResult(null)}
       >
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>新的采集令牌</DialogTitle>
             <DialogDescription>旧令牌已立即失效。</DialogDescription>
@@ -375,6 +392,10 @@ export function CaseDetail({
               linuxCommand={tokenResult.linux_command}
               installLinux={tokenResult.install_command_linux}
               installWindows={tokenResult.install_command_windows}
+              watchLinux={tokenResult.watch_command_linux}
+              watchWindows={tokenResult.watch_command_windows}
+              watchEnabled={tokenResult.watch_enabled}
+              watchMaxHours={tokenResult.watch_max_hours}
               distAvailable={tokenResult.dist_available}
               expires={fmtTime(
                 fields(tokenResult.case)["令牌过期"] || tokenResult.expires

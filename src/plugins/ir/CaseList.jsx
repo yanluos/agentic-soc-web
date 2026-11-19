@@ -162,6 +162,11 @@ export function CaseList({
                     <span className="flex w-full items-center justify-between gap-2">
                       <span className="truncate">{name}</span>
                       <span className="flex shrink-0 items-center gap-1">
+                        {f["监控状态"] === "监控中" ? (
+                          <Badge variant="success" className="text-[10px]">
+                            监控中
+                          </Badge>
+                        ) : null}
                         <LevelBadge level={f["风险等级"]} />
                         <Badge variant="outline" className="text-[10px]">
                           {f["状态"] || "待研判"}

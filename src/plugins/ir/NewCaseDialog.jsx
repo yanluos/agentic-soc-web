@@ -38,7 +38,9 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated, ticket }) {
   // Pre-fill the case name from the ticket each time the dialog opens.
   useEffect(() => {
     if (open && ticket && !result) {
-      setName((n) => n || `工单 #${ticket.id}：${ticket.title || ""}`.slice(0, 80))
+      setName(
+        (n) => n || `工单 #${ticket.id}：${ticket.title || ""}`.slice(0, 80)
+      )
     }
   }, [open, ticket, result])
 
@@ -81,7 +83,7 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated, ticket }) {
         onOpenChange(o)
       }}
     >
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
             {result
@@ -106,6 +108,10 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated, ticket }) {
             linuxCommand={result.linux_command}
             installLinux={result.install_command_linux}
             installWindows={result.install_command_windows}
+            watchLinux={result.watch_command_linux}
+            watchWindows={result.watch_command_windows}
+            watchEnabled={result.watch_enabled}
+            watchMaxHours={result.watch_max_hours}
             distAvailable={result.dist_available}
             expires={fmtTime(fields(result.case)["令牌过期"])}
           />

@@ -24,6 +24,7 @@ import {
   InputGroupInput,
   InputGroupTextarea,
 } from "@/components/ui/input-group"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { copyToClipboard } from "@/components/CopyText.jsx"
 import { cn } from "@/lib/utils"
 
@@ -68,10 +69,19 @@ export function TokenReveal({
   linuxCommand,
   installLinux,
   installWindows,
+  watchLinux,
+  watchWindows,
+  watchEnabled,
+  watchMaxHours,
   distAvailable,
   expires,
   api,
 }) {
+  const canWatch = !!watchEnabled && !!(watchLinux || watchWindows)
+  // 持续监控 is the default way to run the collector; 单次采集 stays for
+  // hosts where nothing may be left running.
+  const [mode, setMode] = useState(canWatch ? "watch" : "once")
+  const watching = canWatch && mode === "watch"
   const [manualOpen, setManualOpen] = useState(false)
   const [dist, setDist] = useState(null)
   const hasInstall = !!(installLinux || installWindows)
@@ -107,8 +117,8 @@ export function TokenReveal({
           <Download />
           <AlertTitle>平台未部署采集端二进制</AlertTitle>
           <AlertDescription>
-            一行安装会下载失败：请运行 soc-ir/build.sh 并把 dist/
-            放到插件设置 dist_dir（生产镜像自带），或使用下方手动方式。
+            一行安装会下载失败：请运行 soc-ir/build.sh 并把 dist/ 放到插件设置
+            dist_dir（生产镜像自带），或使用下方手动方式。
           </AlertDescription>
         </Alert>
       ) : null}
@@ -134,19 +144,46 @@ export function TokenReveal({
           </InputGroupAddon>
         </InputGroup>
       </Field>
+      {hasInstall && canWatch ? (
+        <Field>
+          <FieldLabel>采集方式</FieldLabel>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={mode}
+            onValueChange={(v) => v && setMode(v)}
+          >
+            <ToggleGroupItem value="watch">持续监控</ToggleGroupItem>
+            <ToggleGroupItem value="once">单次采集</ToggleGroupItem>
+          </ToggleGroup>
+          <FieldDescription>
+            {watching
+              ? `先做一次完整采集并上传，然后留在前台持续上报新进程、新外联和持久化项的变化，最长 ${watchMaxHours || 24} 小时。按 Ctrl+C、关闭窗口或在案例页点「停止监控」即结束，结束后采集端自动从主机删除自身和本地采集文件。不注册服务，主机重启后不会自动恢复。`
+              : "采集一次、上传一次即退出。采集端和一份本地采集包会留在主机的安装目录，需要人工清理。"}
+          </FieldDescription>
+        </Field>
+      ) : null}
       {hasInstall ? (
         <>
           <CommandField
-            label="一行安装并采集 · Linux（root / sudo）"
-            value={installLinux}
+            label={`${watching ? "持续监控" : "一行安装并采集"} · Linux（root / sudo）`}
+            value={watching ? watchLinux : installLinux}
             copyLabel="Linux 命令"
-            hint="在受害主机粘贴执行：自动下载对应架构的采集端、校验 SHA256、只读采集后直传平台；平台不可达时自动落离线包。可在末尾追加 -deep 等参数。"
+            hint={
+              watching
+                ? "在受害主机粘贴执行并保持该终端打开：自动下载对应架构的采集端、校验 SHA256、只读采集。"
+                : "在受害主机粘贴执行：自动下载对应架构的采集端、校验 SHA256、只读采集后直传平台；平台不可达时自动落离线包。可在末尾追加 -deep 等参数。"
+            }
           />
           <CommandField
-            label="一行安装并采集 · Windows（管理员 PowerShell）"
-            value={installWindows}
+            label={`${watching ? "持续监控" : "一行安装并采集"} · Windows（管理员 PowerShell）`}
+            value={watching ? watchWindows : installWindows}
             copyLabel="Windows 命令"
-            hint="同上；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
+            hint={
+              watching
+                ? "同上，保持 PowerShell 窗口打开；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
+                : "同上；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
+            }
           />
         </>
       ) : null}
@@ -192,7 +229,8 @@ export function TokenReveal({
                   </div>
                 )}
                 <FieldDescription>
-                  拷到主机后用上面的命令执行；也可先 -o 落盘，再在案例页「上传采集包」。
+                  拷到主机后用上面的命令执行；也可先 -o
+                  落盘，再在案例页「上传采集包」。
                 </FieldDescription>
               </Field>
             ) : null}
