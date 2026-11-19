@@ -4,7 +4,14 @@
 // table meta, committed as a NocoDB-style `where` so filtering is server-side),
 // and plain rows (rowActive / rowHover) instead of rail chips.
 import { useState } from "react"
-import { ArrowUpDown, ListFilter, Plus, RefreshCw, Siren } from "lucide-react"
+import {
+  ArrowUpDown,
+  BookOpenText,
+  ListFilter,
+  Plus,
+  RefreshCw,
+  Siren,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,6 +26,7 @@ import { cardHover, rowActive, rowHover } from "@/lib/styles"
 import { cn } from "@/lib/utils"
 import { FilterPanel, IconButton, SortPanel, countClauses } from "@/platform"
 import { LevelBadge } from "./LevelBadge.jsx"
+import { ScoringGuide } from "./ScoringGuide.jsx"
 import { fields, fmtTime } from "./lib.js"
 
 export function CaseList({
@@ -51,14 +59,22 @@ export function CaseList({
               </span>
             ) : null}
           </CardTitle>
-          <IconButton
-            color="blue"
-            size="sm"
-            aria-label="新建案例"
-            onClick={onCreate}
-          >
-            <Plus />
-          </IconButton>
+          <div className="flex items-center gap-1">
+            <ScoringGuide>
+              <Button variant="ghost" size="sm">
+                <BookOpenText data-icon="inline-start" />
+                评分标准
+              </Button>
+            </ScoringGuide>
+            <IconButton
+              color="blue"
+              size="sm"
+              aria-label="新建案例"
+              onClick={onCreate}
+            >
+              <Plus />
+            </IconButton>
+          </div>
         </div>
         <div className="mt-1 flex items-center gap-1">
           <Popover

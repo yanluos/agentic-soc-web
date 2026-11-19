@@ -16,6 +16,7 @@ import {
 import { copyToClipboard } from "@/components/CopyText.jsx"
 import { LevelBadge } from "./LevelBadge.jsx"
 import { ScoreBreakdown } from "./ScoreBreakdown.jsx"
+import { ScoringGuide } from "./ScoringGuide.jsx"
 
 const SKIP = new Set(["reasons", "scores"])
 
@@ -73,9 +74,16 @@ export function RowSheet({ row, title, onOpenChange, onNavigate, hostname }) {
         <div className="flex min-h-0 thin-scrollbar flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           {row?.scores ? (
             <section className="flex flex-col gap-2">
-              <h4 className="text-xs font-medium text-muted-foreground">
-                评分拆解
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-medium text-muted-foreground">
+                  评分拆解
+                </h4>
+                <ScoringGuide>
+                  <Button variant="link" size="sm" className="h-auto p-0">
+                    评分标准
+                  </Button>
+                </ScoringGuide>
+              </div>
               <ScoreBreakdown scores={row.scores} />
             </section>
           ) : null}
