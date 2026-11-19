@@ -1,11 +1,23 @@
-// CaseDetail — right pane: header (host facts, level, status select, actions)
-// + tabs: 概览 / 发现 / one tab per analysis view.
+// CaseDetail — right pane: header (host facts, level, status select, case
+// actions) + three groups that keep the two kinds of data apart:
+//   概览      — the case itself: what was found, the verdict
+//   实时监控  — what the agent sees on the host NOW (LiveConsole; its own
+//               panes: 进程 / 网络 / 启动项 / 事件流 / 告警关联 / 已存事件)
+//   取证快照  — the uploaded collection package, frozen at collection time
+//               (发现 + one pane per analysis view; upload / report / raw
+//               package actions live here, they act on the package)
+// Both data groups use the same second-level control (an outline
+// ToggleGroup), so "进程" under 实时监控 and "进程" under 取证快照 are never
+// side by side.
 import { useState } from "react"
 import {
+  Activity,
   Bot,
+  Camera,
   Download,
   FileJson,
   KeyRound,
+  LayoutDashboard,
   MoreHorizontal,
   Ticket,
   Trash2,
@@ -39,6 +51,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ConfirmDialog } from "@/components/ConfirmDialog.jsx"
 import { FindingsTab } from "./FindingsTab.jsx"
 import { LevelBadge } from "./LevelBadge.jsx"
@@ -71,6 +84,8 @@ export function CaseDetail({
   const f = fields(caseRow)
   const id = caseRow.id
   const [tab, setTab] = useState("overview")
+  // which pane of 取证快照 is showing ("findings" or a view key)
+  const [snap, setSnap] = useState("findings")
   const [uploadOpen, setUploadOpen] = useState(false)
   const [tokenResult, setTokenResult] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -220,15 +235,6 @@ export function CaseDetail({
           <Button
             type="button"
             size="sm"
-            variant={uploaded ? "outline" : "default"}
-            onClick={() => setUploadOpen(true)}
-          >
-            <Upload data-icon="inline-start" />
-            上传采集包
-          </Button>
-          <Button
-            type="button"
-            size="sm"
             disabled={!uploaded || !!pending}
             onClick={triage}
           >
@@ -253,20 +259,6 @@ export function CaseDetail({
             )}
             生成工单
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={!uploaded || !!pending}
-            onClick={report}
-          >
-            {pending === "下载报告" ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <Download data-icon="inline-start" />
-            )}
-            下载报告
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -282,10 +274,6 @@ export function CaseDetail({
               <DropdownMenuItem onClick={resetToken}>
                 <KeyRound data-icon="inline-start" />
                 重置采集令牌
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled={!uploaded} onClick={pkg}>
-                <FileJson data-icon="inline-start" />
-                下载原始采集包
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -305,21 +293,24 @@ export function CaseDetail({
         onValueChange={setTab}
         className="flex min-h-0 flex-1 flex-col"
       >
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="overview">概览</TabsTrigger>
-          <TabsTrigger value="findings">发现</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="overview">
+            <LayoutDashboard data-icon="inline-start" />
+            概览
+          </TabsTrigger>
           <TabsTrigger value="monitor">
+            <Activity data-icon="inline-start" />
             实时监控
             {f["监控状态"] === "监控中" ? (
               <span className="size-1.5 rounded-full bg-success" />
             ) : null}
           </TabsTrigger>
-          {VIEWS.map((v) => (
-            <TabsTrigger key={v.key} value={v.key}>
-              {v.label}
-            </TabsTrigger>
-          ))}
+          <TabsTrigger value="snapshot">
+            <Camera data-icon="inline-start" />
+            取证快照
+          </TabsTrigger>
         </TabsList>
+
         <TabsContent value="overview" className="flex min-h-0 flex-1 flex-col">
           <OverviewTab
             api={api}
@@ -327,22 +318,10 @@ export function CaseDetail({
             onPatched={onPatched}
             onNavigate={onNavigate}
             refreshKey={refreshKey}
+            onOpen={setTab}
           />
         </TabsContent>
-        <TabsContent value="findings" className="flex min-h-0 flex-1 flex-col">
-          {tab === "findings" ? (
-            <FindingsTab
-              api={api}
-              caseId={id}
-              hostname={hostname}
-              onNavigate={onNavigate}
-              setError={setError}
-              refreshKey={refreshKey}
-              onChanged={reload}
-              {...filterProps("findings")}
-            />
-          ) : null}
-        </TabsContent>
+
         <TabsContent value="monitor" className="flex min-h-0 flex-1 flex-col">
           <LiveConsole
             key={refreshKey}
@@ -354,27 +333,104 @@ export function CaseDetail({
             historyProps={filterProps("monitor")}
           />
         </TabsContent>
-        {VIEWS.map((v) => (
-          <TabsContent
-            key={v.key}
-            value={v.key}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            {tab === v.key ? (
-              <ViewTable
-                key={`${id}-${v.key}`}
-                api={api}
-                caseId={id}
-                view={v.key}
-                hostname={hostname}
-                onNavigate={onNavigate}
-                setError={setError}
-                refreshKey={refreshKey}
-                {...filterProps(v.key)}
-              />
-            ) : null}
-          </TabsContent>
-        ))}
+
+        <TabsContent
+          value="snapshot"
+          className="flex min-h-0 flex-1 flex-col gap-3"
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border p-3">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-xs font-medium">
+                {uploaded
+                  ? `采集包快照 · 采集于 ${fmtTime(f["采集时间"])}`
+                  : "尚未上传采集包"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {uploaded
+                  ? `${f["采集工具版本"] || "socir"} 在主机上一次性采集并打分的结果，内容固定在采集那一刻，不随主机变化；主机当前的状态看「实时监控」。`
+                  : "在主机上运行采集命令后自动上传，也可手动上传采集包 JSON 或离线 zip。"}
+              </span>
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant={uploaded ? "outline" : "default"}
+                onClick={() => setUploadOpen(true)}
+              >
+                <Upload data-icon="inline-start" />
+                上传采集包
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!uploaded || !!pending}
+                onClick={report}
+              >
+                {pending === "下载报告" ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <Download data-icon="inline-start" />
+                )}
+                下载报告
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!uploaded || !!pending}
+                onClick={pkg}
+              >
+                <FileJson data-icon="inline-start" />
+                原始采集包
+              </Button>
+            </div>
+          </div>
+          {uploaded ? (
+            <>
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                value={snap}
+                onValueChange={(v) => v && setSnap(v)}
+                className="flex-wrap justify-start"
+              >
+                <ToggleGroupItem value="findings">发现</ToggleGroupItem>
+                {VIEWS.map((v) => (
+                  <ToggleGroupItem key={v.key} value={v.key}>
+                    {v.label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              {tab !== "snapshot" ? null : snap === "findings" ? (
+                <FindingsTab
+                  api={api}
+                  caseId={id}
+                  hostname={hostname}
+                  onNavigate={onNavigate}
+                  setError={setError}
+                  refreshKey={refreshKey}
+                  onChanged={reload}
+                  {...filterProps("findings")}
+                />
+              ) : (
+                <ViewTable
+                  key={`${id}-${snap}`}
+                  api={api}
+                  caseId={id}
+                  view={snap}
+                  hostname={hostname}
+                  onNavigate={onNavigate}
+                  setError={setError}
+                  refreshKey={refreshKey}
+                  {...filterProps(snap)}
+                />
+              )}
+            </>
+          ) : null}
+        </TabsContent>
       </Tabs>
 
       <UploadDialog

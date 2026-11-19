@@ -249,7 +249,14 @@ src/plugins/secincident/             — 安全事件表渲染器:QuickSearch.js
                                        limit=1 取 pageInfo.totalRows 计数,展开才拉方卡;60s 轮询+随主列表
                                        刷新;方卡点开同一个详情模态框,编辑经宿主 patchRecord 再重查。截图验证时可预置 localStorage
                                        tableview:secincident = {"sort":"-CreatedAt"} 让最新事件排前
-src/plugins/ir/                      — 应急响应。案例页「实时监控」= LiveConsole.jsx（火绒剑式控制台）：
+src/plugins/ir/                      — 应急响应。案例页（CaseDetail.jsx）分三组，把两类数据从分组层面隔开
+                                       （2026-11-19 重排，此前 14 个标签平铺，实时数据与采集包数据混在一起）：
+                                       概览 = 研判 + 主机与案例，下面两张摘要卡各对应一个数据源并可跳转；
+                                       实时监控 = agent 当前看到的主机状态；取证快照 = 上传的采集包（固定在
+                                       采集那一刻），顶部说明条 + 上传采集包/下载报告/原始采集包三个动作，
+                                       二级导航 = 发现 + 11 个分析视图。两组的二级导航都用 outline
+                                       ToggleGroup，案例头部只留案例级动作（AI 研判/生成工单/更多）。
+                                       「实时监控」= LiveConsole.jsx（火绒剑式控制台）：
                                        agent 在主机上维护进程/连接/启动项状态并实时上报，平台镜像这份状态
                                        （GET /api/v1/ir/cases/{id}/live/*）。面板：进程（按 ppid 现拼的树，
                                        子树按最高风险默认展开，新出现的行绿色淡底 6 秒）/ 网络（点远端地址
