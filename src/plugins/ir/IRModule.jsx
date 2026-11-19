@@ -1,6 +1,10 @@
 // 应急响应 (ir) — two-pane module laid out like 工作流: left = the case list
 // card (server-side 筛选/排序 through the generic ir_cases table API, the same
 // FilterPanel the 安全事件 ledger uses), right = the selected case's detail.
+// The module is pinned to the viewport height and each pane scrolls on its
+// own: the list is a fixed-width column that never moves with the detail, and
+// the detail pane is `min-w-0` so a wide table cannot stretch the page. The
+// list folds to a narrow strip (remembered in localStorage).
 // Case reads go through /api/v1/tables/ir_cases (reads are never guarded);
 // every write still goes to /api/v1/ir via usePluginApi("ir").
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -32,6 +36,15 @@ import { errMsg } from "./lib.js"
 const SLUG = "ir_cases"
 const PAGE = 200
 const DEFAULT_SORT = "-CreatedAt"
+const COLLAPSE_KEY = "ir:case-list-collapsed"
+
+function readCollapsed() {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
 
 export function IRModule({ apiClient, setError, onNavigate }) {
   const api = usePluginApi("ir")
@@ -41,6 +54,7 @@ export function IRModule({ apiClient, setError, onNavigate }) {
   const [loading, setLoading] = useState(false)
   const [activeId, setActiveId] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [collapsed, setCollapsed] = useState(readCollapsed)
   const viewState = useTableViewState(SLUG, columns)
   const reqSeq = useRef(0)
 
@@ -105,6 +119,17 @@ export function IRModule({ apiClient, setError, onNavigate }) {
 
   const active = cases?.find((c) => String(c.id) === String(activeId)) || null
 
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1")
+      } catch {
+        /* private mode — the fold just isn't remembered */
+      }
+      return !c
+    })
+  }
+
   function patched(row) {
     if (!row?.id) return load()
     setCases((cs) =>
@@ -121,9 +146,16 @@ export function IRModule({ apiClient, setError, onNavigate }) {
   }
 
   return (
-    <div className="flex h-[calc(100svh-6rem)] flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[300px_1fr]">
+    <div className="flex h-[calc(100svh-6rem)] min-w-0 gap-4">
+      <div
+        className={cn(
+          "flex min-h-0 shrink-0 flex-col",
+          collapsed ? "w-11" : "w-[300px]"
+        )}
+      >
         <CaseList
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
           cases={cases}
           total={total}
           loading={loading}
@@ -133,40 +165,42 @@ export function IRModule({ apiClient, setError, onNavigate }) {
           onCreate={() => setCreating(true)}
           onRefresh={load}
         />
-        <div className="flex min-h-0 flex-col gap-4">
-          {active ? (
-            <Card className={cn(cardHover, "flex min-h-0 flex-1 flex-col")}>
-              <CardContent className="flex min-h-0 flex-1 flex-col p-4">
-                <CaseDetail
-                  key={active.id}
-                  api={api}
-                  caseRow={active}
-                  onPatched={patched}
-                  onDeleted={deleted}
-                  onNavigate={onNavigate}
-                  setError={setError}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className={cn(cardHover, "flex flex-1")}>
-              <CardContent className="flex flex-1 items-center justify-center p-12">
-                <Empty className="border-0">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Siren />
-                    </EmptyMedia>
-                    <EmptyTitle>选择或新建一个应急案例</EmptyTitle>
-                    <EmptyDescription>
-                      新建案例会生成一次性采集令牌；把令牌交给现场人员在受害主机运行
-                      socir 即可直传采集包，也可在案例里手动上传。
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {active ? (
+          <Card
+            className={cn(cardHover, "flex min-h-0 min-w-0 flex-1 flex-col")}
+          >
+            <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col p-4">
+              <CaseDetail
+                key={active.id}
+                api={api}
+                caseRow={active}
+                onPatched={patched}
+                onDeleted={deleted}
+                onNavigate={onNavigate}
+                setError={setError}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className={cn(cardHover, "flex flex-1")}>
+            <CardContent className="flex flex-1 items-center justify-center p-12">
+              <Empty className="border-0">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Siren />
+                  </EmptyMedia>
+                  <EmptyTitle>选择或新建一个应急案例</EmptyTitle>
+                  <EmptyDescription>
+                    新建案例会生成一次性采集令牌；把令牌交给现场人员在受害主机运行
+                    socir 即可直传采集包，也可在案例里手动上传。
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <NewCaseDialog
         api={api}

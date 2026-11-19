@@ -1,5 +1,7 @@
-// FindingsTab — materialized findings (ir_findings rows) with type/status
-// filters, multi-select and bulk verdicts (PATCH /findings/{id}).
+// FindingsTab — materialized findings (ir_findings rows), filtered with the
+// platform's generic FilterPanel (ListFilter → `where`), multi-select and bulk
+// verdicts (PATCH /findings/{id}). Fixed-layout table: fills the pane, never
+// grows past it.
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Check, CheckCheck, RefreshCw, ShieldOff, Wrench } from "lucide-react"
 import { toast } from "sonner"
@@ -14,13 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import {
@@ -31,14 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { IconButton } from "@/components/IconButton.jsx"
 import { cn } from "@/lib/utils"
+import { countClauses, nodeToWhere } from "@/platform"
 import { LevelBadge } from "./LevelBadge.jsx"
+import { ListFilter } from "./ListFilter.jsx"
+import { FINDING_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { RowSheet } from "./RowSheet.jsx"
 import {
-  FINDING_STATUSES,
-  FINDING_TYPES,
   errMsg,
   fields,
   findingTypeLabel,
@@ -47,8 +42,6 @@ import {
   parseJSON,
   truncate,
 } from "./lib.js"
-
-const SCORE_PRESETS = [0, 20, 40, 60, 80]
 
 function statusVariant(s) {
   switch (s) {
@@ -71,10 +64,17 @@ export function FindingsTab({
   setError,
   refreshKey,
   onChanged,
+  filterTree,
+  onFilterTree,
 }) {
-  const [type, setType] = useState("all")
-  const [status, setStatus] = useState("all")
-  const [minScore, setMinScore] = useState(20)
+  const tree = useMemo(
+    () => filterTree || defaultTree("findings"),
+    [filterTree]
+  )
+  const where = useMemo(
+    () => nodeToWhere(tree, true, FINDING_FILTER_FIELDS),
+    [tree]
+  )
   const [rows, setRows] = useState(null)
   const [loading, setLoading] = useState(false)
   const [sel, setSel] = useState(() => new Set())
@@ -85,12 +85,8 @@ export function FindingsTab({
     if (!api || !caseId) return
     setLoading(true)
     try {
-      const qs = new URLSearchParams({
-        case_id: String(caseId),
-        min_score: String(minScore),
-      })
-      if (type !== "all") qs.set("type", type)
-      if (status !== "all") qs.set("status", status)
+      const qs = new URLSearchParams({ case_id: String(caseId) })
+      if (where) qs.set("where", where)
       const r = await api.get(`/findings?${qs}`)
       setRows(listOf(r))
       setSel(new Set())
@@ -100,7 +96,7 @@ export function FindingsTab({
     } finally {
       setLoading(false)
     }
-  }, [api, caseId, type, status, minScore, setError])
+  }, [api, caseId, where, setError])
 
   useEffect(() => {
     load()
@@ -157,46 +153,11 @@ export function FindingsTab({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup
-          type="single"
-          size="sm"
-          variant="outline"
-          value={String(minScore)}
-          onValueChange={(v) => v !== "" && setMinScore(Number(v))}
-          aria-label="最低分"
-        >
-          {SCORE_PRESETS.map((s) => (
-            <ToggleGroupItem key={s} value={String(s)} className="px-2 text-xs">
-              {s === 0 ? "全部" : `≥${s}`}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger size="sm" className="w-32" aria-label="类型">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部类型</SelectItem>
-            {FINDING_TYPES.map(([v, l]) => (
-              <SelectItem key={v} value={v}>
-                {l}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger size="sm" className="w-28" aria-label="状态">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            {FINDING_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ListFilter
+          tree={tree}
+          columns={FINDING_FILTER_FIELDS}
+          onChange={(t) => onFilterTree?.(t)}
+        />
         {sel.size > 0 ? (
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground">
@@ -263,7 +224,7 @@ export function FindingsTab({
         </IconButton>
       </div>
       <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-lg border">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader className="sticky top-0 bg-background">
             <TableRow>
               <TableHead className="w-8">
@@ -274,14 +235,14 @@ export function FindingsTab({
                   disabled={!rows?.length}
                 />
               </TableHead>
-              <TableHead>等级</TableHead>
-              <TableHead className="text-right">分数</TableHead>
-              <TableHead>类型</TableHead>
+              <TableHead className="w-16">等级</TableHead>
+              <TableHead className="w-14 text-right">分数</TableHead>
+              <TableHead className="w-20">类型</TableHead>
               <TableHead>名称</TableHead>
               <TableHead>路径 / 命令行</TableHead>
               <TableHead>原因</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>研判</TableHead>
+              <TableHead className="w-24">状态</TableHead>
+              <TableHead className="w-32">研判</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -303,6 +264,9 @@ export function FindingsTab({
                       </EmptyMedia>
                       <EmptyTitle>没有发现</EmptyTitle>
                       <EmptyDescription>
+                        {countClauses(tree) > 0
+                          ? "没有符合筛选条件的发现，放宽或清空筛选试试。"
+                          : null}
                         上传采集包后，分数达到阈值的对象/触发项/事件等会物化为发现。
                       </EmptyDescription>
                     </EmptyHeader>
@@ -345,20 +309,23 @@ export function FindingsTab({
                     <TableCell className="text-right text-xs tabular-nums">
                       {f["风险分"] ?? 0}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="truncate text-xs">
                       {findingTypeLabel(f["类型"])}
                     </TableCell>
-                    <TableCell className="text-xs font-medium">
-                      {truncate(f["名称"], 40) || "-"}
+                    <TableCell
+                      className="truncate text-xs font-medium"
+                      title={f["名称"]}
+                    >
+                      {f["名称"] || "-"}
                     </TableCell>
                     <TableCell
-                      className="font-mono text-[11px]"
+                      className="truncate font-mono text-[11px]"
                       title={f["命令行"] || f["路径"]}
                     >
-                      {truncate(f["命令行"] || f["路径"], 70) || "-"}
+                      {f["命令行"] || f["路径"] || "-"}
                     </TableCell>
-                    <TableCell>
-                      <span className="flex max-w-72 flex-wrap gap-1">
+                    <TableCell className="whitespace-normal">
+                      <span className="flex flex-wrap gap-1">
                         {codeList.slice(0, 4).map((c) => (
                           <Badge
                             key={c}
@@ -385,7 +352,7 @@ export function FindingsTab({
                         {f["状态"] || "待确认"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[11px] text-muted-foreground">
+                    <TableCell className="truncate text-[11px] text-muted-foreground">
                       {f["研判人"]
                         ? `${f["研判人"]} ${fmtTime(f["研判时间"]).slice(5, 16)}`
                         : "-"}

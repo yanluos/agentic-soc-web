@@ -2,12 +2,16 @@
 // whose header carries the title/count/新建 button, a compact toolbar with the
 // 安全事件-style 筛选 / 排序 popovers (FilterPanel + SortPanel over the ir_cases
 // table meta, committed as a NocoDB-style `where` so filtering is server-side),
-// and plain rows (rowActive / rowHover) instead of rail chips.
+// and plain rows (rowActive / rowHover) instead of rail chips. `collapsed`
+// folds the whole card to a narrow strip (expand button + count) so the detail
+// pane gets the full width.
 import { useState } from "react"
 import {
   ArrowUpDown,
   BookOpenText,
   ListFilter,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   RefreshCw,
   Siren,
@@ -38,6 +42,8 @@ export function CaseList({
   onSelect,
   onCreate,
   onRefresh,
+  collapsed,
+  onToggleCollapsed,
 }) {
   const { filterTree, setFilterTree, sort, setSort, allColumns } = viewState
   // The filter popover edits a draft; the tree is committed (and the query
@@ -46,8 +52,38 @@ export function CaseList({
   const [filterDraft, setFilterDraft] = useState(filterTree)
   const filterCount = countClauses(filterTree)
 
+  if (collapsed) {
+    return (
+      <Card
+        className={cn(
+          cardHover,
+          "flex min-h-0 flex-1 flex-col items-center gap-2 py-2"
+        )}
+      >
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="展开案例列表"
+          title="展开案例列表"
+          onClick={onToggleCollapsed}
+        >
+          <PanelLeftOpen />
+        </Button>
+        <Siren className="size-4 text-muted-foreground" />
+        {typeof total === "number" ? (
+          <Badge variant="secondary" className="px-1.5 tabular-nums">
+            {total}
+          </Badge>
+        ) : null}
+        <span className="text-xs text-muted-foreground [writing-mode:vertical-rl]">
+          应急案例
+        </span>
+      </Card>
+    )
+  }
+
   return (
-    <Card className={cn(cardHover, "flex min-h-0 flex-col")}>
+    <Card className={cn(cardHover, "flex min-h-0 flex-1 flex-col")}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-sm">
@@ -74,6 +110,15 @@ export function CaseList({
             >
               <Plus />
             </IconButton>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="折叠案例列表"
+              title="折叠案例列表"
+              onClick={onToggleCollapsed}
+            >
+              <PanelLeftClose />
+            </Button>
           </div>
         </div>
         <div className="mt-1 flex items-center gap-1">

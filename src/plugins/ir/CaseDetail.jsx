@@ -46,7 +46,7 @@ import { OverviewTab } from "./OverviewTab.jsx"
 import { TokenReveal } from "./TokenReveal.jsx"
 import { UploadDialog } from "./UploadDialog.jsx"
 import { ViewTable } from "./ViewTable.jsx"
-import { MonitorTab } from "./MonitorTab.jsx"
+import { LiveConsole } from "./LiveConsole.jsx"
 import { CASE_STATUSES, VIEWS, errMsg, fields, fmtTime } from "./lib.js"
 
 function saveBlob(blob, filename) {
@@ -76,6 +76,13 @@ export function CaseDetail({
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [pending, setPending] = useState("")
   const [refreshKey, setRefreshKey] = useState(0)
+  // Filter trees per list (findings / monitor / each view): tabs unmount
+  // their tables, so the trees live here and survive tab switches.
+  const [filters, setFilters] = useState({})
+  const filterProps = (key) => ({
+    filterTree: filters[key],
+    onFilterTree: (t) => setFilters((m) => ({ ...m, [key]: t })),
+  })
   const uploaded = !!f["采集时间"]
   const hostname = f["主机名"] || ""
 
@@ -332,17 +339,19 @@ export function CaseDetail({
               setError={setError}
               refreshKey={refreshKey}
               onChanged={reload}
+              {...filterProps("findings")}
             />
           ) : null}
         </TabsContent>
         <TabsContent value="monitor" className="flex min-h-0 flex-1 flex-col">
-          <MonitorTab
+          <LiveConsole
             key={refreshKey}
             api={api}
             caseId={id}
             onResetToken={resetToken}
             onNavigate={onNavigate}
             hostname={f["主机名"]}
+            historyProps={filterProps("monitor")}
           />
         </TabsContent>
         {VIEWS.map((v) => (
@@ -361,6 +370,7 @@ export function CaseDetail({
                 onNavigate={onNavigate}
                 setError={setError}
                 refreshKey={refreshKey}
+                {...filterProps(v.key)}
               />
             ) : null}
           </TabsContent>
@@ -396,6 +406,9 @@ export function CaseDetail({
               watchWindows={tokenResult.watch_command_windows}
               watchEnabled={tokenResult.watch_enabled}
               watchMaxHours={tokenResult.watch_max_hours}
+              serviceLinux={tokenResult.service_command_linux}
+              serviceWindows={tokenResult.service_command_windows}
+              agentMaxHours={tokenResult.agent_max_hours}
               distAvailable={tokenResult.dist_available}
               expires={fmtTime(
                 fields(tokenResult.case)["令牌过期"] || tokenResult.expires

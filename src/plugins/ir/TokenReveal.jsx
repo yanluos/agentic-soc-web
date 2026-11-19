@@ -71,6 +71,9 @@ export function TokenReveal({
   installWindows,
   watchLinux,
   watchWindows,
+  serviceLinux,
+  serviceWindows,
+  agentMaxHours,
   watchEnabled,
   watchMaxHours,
   distAvailable,
@@ -80,8 +83,12 @@ export function TokenReveal({
   const canWatch = !!watchEnabled && !!(watchLinux || watchWindows)
   // 持续监控 is the default way to run the collector; 单次采集 stays for
   // hosts where nothing may be left running.
-  const [mode, setMode] = useState(canWatch ? "watch" : "once")
-  const watching = canWatch && mode === "watch"
+  const canService = canWatch && !!(serviceLinux || serviceWindows)
+  const [mode, setMode] = useState(
+    canService ? "service" : canWatch ? "watch" : "once"
+  )
+  const watching = canWatch && mode !== "once"
+  const asService = canService && mode === "service"
   const [manualOpen, setManualOpen] = useState(false)
   const [dist, setDist] = useState(null)
   const hasInstall = !!(installLinux || installWindows)
@@ -153,36 +160,53 @@ export function TokenReveal({
             value={mode}
             onValueChange={(v) => v && setMode(v)}
           >
-            <ToggleGroupItem value="watch">持续监控</ToggleGroupItem>
+            {canService ? (
+              <ToggleGroupItem value="service">实时监控 · 服务</ToggleGroupItem>
+            ) : null}
+            <ToggleGroupItem value="watch">实时监控 · 前台</ToggleGroupItem>
             <ToggleGroupItem value="once">单次采集</ToggleGroupItem>
           </ToggleGroup>
           <FieldDescription>
-            {watching
-              ? `先做一次完整采集并上传，然后留在前台持续上报新进程、新外联和持久化项的变化，最长 ${watchMaxHours || 24} 小时。按 Ctrl+C、关闭窗口或在案例页点「停止监控」即结束，结束后采集端自动从主机删除自身和本地采集文件。不注册服务，主机重启后不会自动恢复。`
-              : "采集一次、上传一次即退出。采集端和一份本地采集包会留在主机的安装目录，需要人工清理。"}
+            {asService
+              ? `agent 安装为系统服务后台运行：先做一次完整采集并上传，然后实时上报进程、网络连接和启动项的变化。关闭窗口、注销、重启都不中断，最长 ${agentMaxHours || 72} 小时。在案例页点「停止监控」、到期或在主机上停止该服务即结束，结束后 agent 注销服务并从主机删除自身。会在主机上临时新增一个服务，终端防护软件可能提示。`
+              : watching
+                ? `agent 在当前窗口前台运行：先做一次完整采集并上传，然后实时上报进程、网络连接和启动项的变化，最长 ${watchMaxHours || 24} 小时。按 Ctrl+C、关闭窗口或在案例页点「停止监控」即结束，结束后自动从主机删除自身。不注册服务，窗口关闭或主机重启后监控即停止。`
+                : "采集一次、上传一次即退出，没有实时监控。采集端和一份本地采集包会留在主机的安装目录，需要人工清理。"}
           </FieldDescription>
         </Field>
       ) : null}
       {hasInstall ? (
         <>
           <CommandField
-            label={`${watching ? "持续监控" : "一行安装并采集"} · Linux（root / sudo）`}
-            value={watching ? watchLinux : installLinux}
+            label={`${watching ? "实时监控" : "一行安装并采集"} · Linux（root / sudo）`}
+            value={
+              asService ? serviceLinux : watching ? watchLinux : installLinux
+            }
             copyLabel="Linux 命令"
             hint={
-              watching
-                ? "在受害主机粘贴执行并保持该终端打开：自动下载对应架构的采集端、校验 SHA256、只读采集。"
-                : "在受害主机粘贴执行：自动下载对应架构的采集端、校验 SHA256、只读采集后直传平台；平台不可达时自动落离线包。可在末尾追加 -deep 等参数。"
+              asService
+                ? "在受害主机粘贴执行，命令返回后即可关闭终端：自动下载对应架构的 agent、校验 SHA256、注册 systemd 单元并启动（没有 systemd 的主机退化为后台进程，重启后不恢复）。"
+                : watching
+                  ? "在受害主机粘贴执行并保持该终端打开：自动下载对应架构的 agent、校验 SHA256、只读采集。"
+                  : "在受害主机粘贴执行：自动下载对应架构的采集端、校验 SHA256、只读采集后直传平台；平台不可达时自动落离线包。可在末尾追加 -deep 等参数。"
             }
           />
           <CommandField
-            label={`${watching ? "持续监控" : "一行安装并采集"} · Windows（管理员 PowerShell）`}
-            value={watching ? watchWindows : installWindows}
+            label={`${watching ? "实时监控" : "一行安装并采集"} · Windows（管理员 PowerShell）`}
+            value={
+              asService
+                ? serviceWindows
+                : watching
+                  ? watchWindows
+                  : installWindows
+            }
             copyLabel="Windows 命令"
             hint={
-              watching
-                ? "同上，保持 PowerShell 窗口打开；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
-                : "同上；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
+              asService
+                ? "必须用管理员 PowerShell 执行（注册服务需要管理员权限），命令返回后即可关闭窗口。"
+                : watching
+                  ? "同上，保持 PowerShell 窗口打开；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
+                  : "同上；非管理员也能跑但命令行/句柄/Security 日志会缺失。"
             }
           />
         </>

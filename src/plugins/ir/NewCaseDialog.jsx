@@ -112,6 +112,9 @@ export function NewCaseDialog({ api, open, onOpenChange, onCreated, ticket }) {
             watchWindows={result.watch_command_windows}
             watchEnabled={result.watch_enabled}
             watchMaxHours={result.watch_max_hours}
+            serviceLinux={result.service_command_linux}
+            serviceWindows={result.service_command_windows}
+            agentMaxHours={result.agent_max_hours}
             distAvailable={result.dist_available}
             expires={fmtTime(fields(result.case)["令牌过期"])}
           />

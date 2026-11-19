@@ -1,7 +1,11 @@
 // ViewTable — one server-paged, filterable table over GET /cases/{id}/view/{view}.
-// Filters: min_score presets (ToggleGroup), level, debounced search; sortable
-// score/time headers; 50 rows a page; row click opens RowSheet. The 进程 view
-// adds a 树/表 toggle that swaps in ProcessTree (view "tree").
+// Filtering is the platform's generic FilterPanel (ListFilter → `where`,
+// evaluated server-side over the package rows) plus a debounced keyword
+// search; sortable score/time headers; 50 rows a page; row click opens
+// RowSheet. The table is `table-fixed`: it always fills the pane and never
+// grows past it — narrow columns carry a width (COL_WIDTH), the rest share
+// what is left and truncate. The 进程 view adds a 树/表 toggle that swaps in
+// ProcessTree (view "tree").
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowDown,
@@ -27,13 +31,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -46,13 +43,15 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { IconButton } from "@/components/IconButton.jsx"
 import { cn } from "@/lib/utils"
-import { COLUMNS } from "./columns.jsx"
+import { countClauses, nodeToWhere } from "@/platform"
+import { COLUMNS, colWidth } from "./columns.jsx"
+import { ListFilter } from "./ListFilter.jsx"
+import { VIEW_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { ProcessTree } from "./ProcessTree.jsx"
 import { RowSheet } from "./RowSheet.jsx"
-import { LEVELS, VIEWS, errMsg, listOf } from "./lib.js"
+import { VIEWS, errMsg, listOf } from "./lib.js"
 
 const LIMIT = 50
-const SCORE_PRESETS = [0, 20, 40, 60, 80]
 
 function useDebounced(value, ms = 350) {
   const [v, setV] = useState(value)
@@ -71,11 +70,21 @@ export function ViewTable({
   onNavigate,
   setError,
   refreshKey,
+  filterTree,
+  onFilterTree,
 }) {
   const meta = VIEWS.find((v) => v.key === view)
   const columns = COLUMNS[view] || COLUMNS.objects
-  const [minScore, setMinScore] = useState(meta?.scored ? 20 : 0)
-  const [level, setLevel] = useState("all")
+  const filterFields = VIEW_FILTER_FIELDS[view] || VIEW_FILTER_FIELDS.objects
+  const ftree = useMemo(
+    () => filterTree || defaultTree(view),
+    [filterTree, view]
+  )
+  const where = useMemo(
+    () => nodeToWhere(ftree, true, filterFields),
+    [ftree, filterFields]
+  )
+  const filtered = countClauses(ftree) > 0
   const [q, setQ] = useState("")
   const dq = useDebounced(q)
   const [sort, setSort] = useState(
@@ -95,7 +104,7 @@ export function ViewTable({
 
   useEffect(() => {
     setOffset(0)
-  }, [minScore, level, dq, sort, caseId])
+  }, [where, dq, sort, caseId])
 
   const load = useCallback(async () => {
     if (!api || !caseId) return
@@ -103,12 +112,11 @@ export function ViewTable({
     setLoading(true)
     try {
       const qs = new URLSearchParams({
-        min_score: String(minScore),
         limit: String(LIMIT),
         offset: String(offset),
         sort,
       })
-      if (level !== "all") qs.set("level", level)
+      if (where) qs.set("where", where)
       if (dq.trim()) qs.set("q", dq.trim())
       const r = await api.get(`/cases/${caseId}/view/${view}?${qs}`)
       if (id !== reqRef.current) return
@@ -121,7 +129,7 @@ export function ViewTable({
     } finally {
       if (id === reqRef.current) setLoading(false)
     }
-  }, [api, caseId, view, minScore, level, dq, sort, offset, setError])
+  }, [api, caseId, view, where, dq, sort, offset, setError])
 
   useEffect(() => {
     load()
@@ -152,41 +160,11 @@ export function ViewTable({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        {meta?.scored || view === "chains" || view === "indicators" ? (
-          <ToggleGroup
-            type="single"
-            size="sm"
-            variant="outline"
-            value={String(minScore)}
-            onValueChange={(v) => v !== "" && setMinScore(Number(v))}
-            aria-label="最低分"
-          >
-            {SCORE_PRESETS.map((s) => (
-              <ToggleGroupItem
-                key={s}
-                value={String(s)}
-                className="px-2 text-xs"
-              >
-                {s === 0 ? "全部" : `≥${s}`}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        ) : null}
-        {meta?.scored ? (
-          <Select value={level} onValueChange={setLevel}>
-            <SelectTrigger size="sm" className="w-28" aria-label="等级">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部等级</SelectItem>
-              {LEVELS.map((l) => (
-                <SelectItem key={l.value} value={l.value}>
-                  {l.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
+        <ListFilter
+          tree={ftree}
+          columns={filterFields}
+          onChange={(t) => onFilterTree?.(t)}
+        />
         <InputGroup className="w-64">
           <InputGroupAddon>
             <Search />
@@ -239,13 +217,15 @@ export function ViewTable({
         </div>
       ) : (
         <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-lg border">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader className="sticky top-0 bg-background">
               <TableRow>
                 {columns.map((c) => (
                   <TableHead
                     key={c.key}
                     className={cn(
+                      "truncate",
+                      colWidth(view, c.key),
                       c.className,
                       c.sort && "cursor-pointer select-none"
                     )}
@@ -284,8 +264,8 @@ export function ViewTable({
                         </EmptyMedia>
                         <EmptyTitle>没有记录</EmptyTitle>
                         <EmptyDescription>
-                          {minScore > 0
-                            ? "降低最低分或清除筛选试试；也可能采集包尚未上传。"
+                          {filtered || dq.trim()
+                            ? "没有符合筛选条件的记录，放宽或清空筛选试试；也可能采集包尚未上传。"
                             : "采集包中该维度没有数据。"}
                         </EmptyDescription>
                       </EmptyHeader>
@@ -302,7 +282,7 @@ export function ViewTable({
                     {columns.map((c) => (
                       <TableCell
                         key={c.key}
-                        className={cn("text-xs", c.className)}
+                        className={cn("truncate text-xs", c.className)}
                       >
                         {c.render(r)}
                       </TableCell>

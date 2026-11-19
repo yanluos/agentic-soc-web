@@ -14,6 +14,47 @@ import {
 
 const mono = "font-mono text-xs"
 
+// Column widths for the fixed-layout table (ViewTable): columns listed here
+// keep a set width, every other column shares the remaining pane width and
+// truncates. `<view>.<key>` overrides the plain key.
+const COL_WIDTH = {
+  level: "w-16",
+  score: "w-14",
+  pid: "w-16",
+  time: "w-36",
+  last: "w-36",
+  mod: "w-36",
+  type: "w-28",
+  location: "w-20",
+  run: "w-22",
+  trig: "w-16",
+  net: "w-14",
+  sources: "w-20",
+  user: "w-28",
+  exists: "w-14",
+  eid: "w-24",
+  n: "w-20",
+  hijack: "w-20",
+  rwx: "w-16",
+  pe: "w-24",
+  mz: "w-16",
+  total: "w-20",
+  tactic: "w-32",
+  pub: "w-14",
+  ctx: "w-28",
+  "processes.sig": "w-28",
+  "events.source": "w-24",
+  "forensics.src": "w-28",
+  "forensics.type": "w-16",
+  "timeline.type": "w-24",
+  "timeline.src": "w-24",
+  "indicators.type": "w-20",
+}
+
+export function colWidth(view, key) {
+  return COL_WIDTH[`${view}.${key}`] ?? COL_WIDTH[key] ?? ""
+}
+
 function yes(b, t = "是", f = "否") {
   return b ? (
     <Badge variant="secondary">{t}</Badge>

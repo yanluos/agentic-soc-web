@@ -249,6 +249,17 @@ src/plugins/secincident/             — 安全事件表渲染器:QuickSearch.js
                                        limit=1 取 pageInfo.totalRows 计数,展开才拉方卡;60s 轮询+随主列表
                                        刷新;方卡点开同一个详情模态框,编辑经宿主 patchRecord 再重查。截图验证时可预置 localStorage
                                        tableview:secincident = {"sort":"-CreatedAt"} 让最新事件排前
+src/plugins/ir/                      — 应急响应。案例页「实时监控」= LiveConsole.jsx（火绒剑式控制台）：
+                                       agent 在主机上维护进程/连接/启动项状态并实时上报，平台镜像这份状态
+                                       （GET /api/v1/ir/cases/{id}/live/*）。面板：进程（按 ppid 现拼的树，
+                                       子树按最高风险默认展开，新出现的行绿色淡底 6 秒）/ 网络（点远端地址
+                                       反查相关进程，命中告警指标的连接标红）/ 启动项 / 事件流（after 游标
+                                       增量拉取，客户端最多留 2000 条；平台重启后环形缓冲清空，last_id 回退
+                                       时前端清空重来）/ 告警关联（关联安全事件的 IP、哈希指标与命中事件）/
+                                       已存事件（MonitorTab embedded，入库的重要事件）。监控中每 2 秒轮询，
+                                       结束后显示最后状态。TokenReveal 三种方式：实时监控·服务（默认）/
+                                       实时监控·前台 / 单次采集。ScoringGuide.jsx = 评分标准文档（分值手写，
+                                       与 soc-ir/internal/analyze 同步）
 src/plugins/<id>/index.jsx           — 插件前端描述符(极小,eager glob 进主包):
                                        { id, sdk, icon?, modules[], hiddenTables,
                                          tableRenderers{slug:{renderItem,renderCreate,renderAside?,renderSearch?,patchPath?,deletePath?}},

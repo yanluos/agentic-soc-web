@@ -3,7 +3,7 @@
 // collection (new process / first-seen remote address / persistence entry
 // added, altered, removed); this tab shows the session state and the event
 // stream, polling GET /cases/{id}/monitor while the session runs.
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Activity,
   CircleStop,
@@ -34,9 +34,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { ConfirmDialog } from "@/components/ConfirmDialog.jsx"
+import { nodeToWhere } from "@/platform"
 import { LevelBadge } from "./LevelBadge.jsx"
+import { ListFilter } from "./ListFilter.jsx"
+import { MONITOR_FILTER_FIELDS, defaultTree } from "./filterFields.js"
 import { RowSheet } from "./RowSheet.jsx"
 import { TRIGGER_LABELS, errMsg, fields, fmtTime } from "./lib.js"
 
@@ -96,13 +98,21 @@ export function MonitorTab({
   onResetToken,
   onNavigate,
   hostname,
+  filterTree,
+  onFilterTree,
+  // embedded: rendered inside LiveConsole, which already shows the session
+  // header — only the stored-event list remains
+  embedded = false,
 }) {
+  const tree = useMemo(() => filterTree || defaultTree("monitor"), [filterTree])
+  const where = useMemo(
+    () => nodeToWhere(tree, true, MONITOR_FILTER_FIELDS),
+    [tree]
+  )
   const [open, setOpen] = useState(null)
   const [monitor, setMonitor] = useState(null)
   const [events, setEvents] = useState(null)
   const [total, setTotal] = useState(0)
-  const [kind, setKind] = useState("all")
-  const [minScore, setMinScore] = useState("0")
   const [loading, setLoading] = useState(false)
   const [confirmStop, setConfirmStop] = useState(false)
   const seq = useRef(0)
@@ -113,8 +123,7 @@ export function MonitorTab({
       if (!quiet) setLoading(true)
       try {
         const q = new URLSearchParams({ limit: String(PAGE) })
-        if (kind !== "all") q.set("kind", kind)
-        if (minScore !== "0") q.set("min_score", minScore)
+        if (where) q.set("where", where)
         const r = await api.get(`/cases/${caseId}/monitor?${q}`)
         if (my !== seq.current) return
         setMonitor(r.monitor || {})
@@ -127,7 +136,7 @@ export function MonitorTab({
         if (my === seq.current) setLoading(false)
       }
     },
-    [api, caseId, kind, minScore]
+    [api, caseId, where]
   )
 
   useEffect(() => {
@@ -184,97 +193,93 @@ export function MonitorTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border p-3">
-        <div className="flex items-center gap-2">
-          <Activity className="size-4 text-muted-foreground" />
-          <StateBadge monitor={monitor} />
-        </div>
-        <Stat label="开始">{fmtTime(monitor.started)}</Stat>
-        <Stat label={running ? "最近心跳" : "结束"}>
-          {fmtTime(running ? monitor.last_beat : monitor.ended)}
-        </Stat>
-        {running ? (
-          <Stat label="最晚到">{fmtTime(monitor.deadline)}</Stat>
-        ) : null}
-        <Stat label="累计事件">{monitor.events ?? 0}</Stat>
-        {running ? <Stat label="当前进程数">{monitor.processes}</Stat> : null}
-        <Stat label="最高风险分">{monitor.max_score ?? 0}</Stat>
-        {!running && monitor.end_reason ? (
-          <Stat label="结束原因">
-            {END_REASONS[monitor.end_reason] || monitor.end_reason}
-          </Stat>
-        ) : null}
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => load(false)}
-            disabled={loading}
-          >
-            {loading ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <RefreshCw data-icon="inline-start" />
-            )}
-            刷新
-          </Button>
-          {running ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={monitor.stop_requested}
-              onClick={() => setConfirmStop(true)}
-            >
-              <CircleStop data-icon="inline-start" />
-              停止监控
-            </Button>
+      {embedded ? null : (
+        <>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border p-3">
+            <div className="flex items-center gap-2">
+              <Activity className="size-4 text-muted-foreground" />
+              <StateBadge monitor={monitor} />
+            </div>
+            <Stat label="开始">{fmtTime(monitor.started)}</Stat>
+            <Stat label={running ? "最近心跳" : "结束"}>
+              {fmtTime(running ? monitor.last_beat : monitor.ended)}
+            </Stat>
+            {running ? (
+              <Stat label="最晚到">{fmtTime(monitor.deadline)}</Stat>
+            ) : null}
+            <Stat label="累计事件">{monitor.events ?? 0}</Stat>
+            {running ? (
+              <Stat label="当前进程数">{monitor.processes}</Stat>
+            ) : null}
+            <Stat label="最高风险分">{monitor.max_score ?? 0}</Stat>
+            {!running && monitor.end_reason ? (
+              <Stat label="结束原因">
+                {END_REASONS[monitor.end_reason] || monitor.end_reason}
+              </Stat>
+            ) : null}
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => load(false)}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <RefreshCw data-icon="inline-start" />
+                )}
+                刷新
+              </Button>
+              {running ? (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={monitor.stop_requested}
+                  onClick={() => setConfirmStop(true)}
+                >
+                  <CircleStop data-icon="inline-start" />
+                  停止监控
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          {running && !monitor.online ? (
+            <Alert>
+              <Radio />
+              <AlertTitle>采集端已超过 2 分钟没有上报</AlertTitle>
+              <AlertDescription>
+                可能是主机关机、断网，或采集端进程被结束。恢复后会自动补报；确认不再回来可点「停止监控」关闭会话（此时无法通知采集端自清理）。
+              </AlertDescription>
+            </Alert>
           ) : null}
-        </div>
-      </div>
-
-      {running && !monitor.online ? (
-        <Alert>
-          <Radio />
-          <AlertTitle>采集端已超过 2 分钟没有上报</AlertTitle>
-          <AlertDescription>
-            可能是主机关机、断网，或采集端进程被结束。恢复后会自动补报；确认不再回来可点「停止监控」关闭会话（此时无法通知采集端自清理）。
-          </AlertDescription>
-        </Alert>
-      ) : null}
-      {monitor.dropped ? (
-        <Alert>
-          <Radio />
-          <AlertTitle>有 {monitor.dropped} 条变化未入库</AlertTitle>
-          <AlertDescription>
-            平台不可达期间采集端本地队列溢出，或单个案例的事件数已达上限。
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
+          {monitor.note ? (
+            <Alert>
+              <Radio />
+              <AlertTitle>
+                采集端自诊断（{fmtTime(monitor.note_at)}）
+              </AlertTitle>
+              <AlertDescription>{monitor.note}</AlertDescription>
+            </Alert>
+          ) : null}
+          {monitor.dropped ? (
+            <Alert>
+              <Radio />
+              <AlertTitle>有 {monitor.dropped} 条变化未入库</AlertTitle>
+              <AlertDescription>
+                平台不可达期间采集端本地队列溢出，或单个案例的事件数已达上限。
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </>
+      )}
       <div className="flex flex-wrap items-center gap-3">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          value={kind}
-          onValueChange={(v) => v && setKind(v)}
-        >
-          <ToggleGroupItem value="all">全部</ToggleGroupItem>
-          <ToggleGroupItem value="process">进程</ToggleGroupItem>
-          <ToggleGroupItem value="network">外联</ToggleGroupItem>
-          <ToggleGroupItem value="trigger">持久化</ToggleGroupItem>
-        </ToggleGroup>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          value={minScore}
-          onValueChange={(v) => v && setMinScore(v)}
-        >
-          <ToggleGroupItem value="0">所有分数</ToggleGroupItem>
-          <ToggleGroupItem value="20">可疑及以上</ToggleGroupItem>
-          <ToggleGroupItem value="60">高及以上</ToggleGroupItem>
-        </ToggleGroup>
+        <ListFilter
+          tree={tree}
+          columns={MONITOR_FILTER_FIELDS}
+          onChange={(t) => onFilterTree?.(t)}
+        />
         <span className="ml-auto text-xs text-muted-foreground">
           {total > (events?.length || 0)
             ? `最近 ${events?.length || 0} 条，共 ${total} 条`
@@ -284,13 +289,13 @@ export function MonitorTab({
 
       <div className="min-h-0 thin-scrollbar flex-1 overflow-auto rounded-md border">
         {events?.length ? (
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-40">主机时间</TableHead>
-                <TableHead className="w-24">类型</TableHead>
-                <TableHead className="w-20">风险</TableHead>
-                <TableHead>变化</TableHead>
+                <TableHead className="w-28">类型</TableHead>
+                <TableHead className="w-24">风险</TableHead>
+                <TableHead className="w-[32%]">变化</TableHead>
                 <TableHead>路径 / 命令行</TableHead>
               </TableRow>
             </TableHeader>
@@ -333,7 +338,7 @@ export function MonitorTab({
                         showScore
                       />
                     </TableCell>
-                    <TableCell className="max-w-64 align-top text-xs whitespace-normal">
+                    <TableCell className="align-top text-xs whitespace-normal">
                       <div className="break-all">{what(f)}</div>
                       {f["原因"] ? (
                         <div className="line-clamp-2 text-[11px] text-muted-foreground">
@@ -341,7 +346,7 @@ export function MonitorTab({
                         </div>
                       ) : null}
                     </TableCell>
-                    <TableCell className="max-w-96 align-top font-mono text-[11px] whitespace-normal text-muted-foreground">
+                    <TableCell className="align-top font-mono text-[11px] whitespace-normal text-muted-foreground">
                       <div className="line-clamp-2 break-all">
                         {f["命令行"] || f["路径"] || "-"}
                       </div>
